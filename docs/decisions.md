@@ -194,8 +194,9 @@ Bambu tools so people migrating from them find things where they expect. The pha
   sends itself. The trigger only confirms the bed; starting the next file needs auto-start, so turning the trigger on
   turns auto-start on and turning auto-start off turns the trigger off (maintainer's request).
 - **The wait before an automatic start is a setting** (`queueAutoStartDelaySec`, 0 to 3600 s, 15 by default;
-  maintainer's request). It applies after the bed is confirmed (so you can step away after tapping the light) and,
-  with the confirmation off, after a print finishes. The queue shows the countdown with a button to cancel it;
+  maintainer's request). It applies after the bed is confirmed in the dashboard and, with the confirmation off, after a print
+  finishes. The light trigger always starts the next file right away (maintainer's request): the taps already happen
+  at the printer, and the confirmation has to feel instant. The queue shows the countdown with a button to cancel it;
   starting a file by hand or adding one to the queue does not wait. The printer settings show a sentence that says
   what will happen with the current choices.
 - **How the single queue picks the next file** (October 2026). The queue keeps one order for every printer. When a

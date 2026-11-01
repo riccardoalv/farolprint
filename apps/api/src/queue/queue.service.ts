@@ -158,7 +158,7 @@ export class QueueService extends EventEmitter<{ bed_cleared: [printerId: string
         const onState = (state: PrinterLiveState) => void this.onState(bridge, watch, state);
         const onLight = () => {
             if (!bridge.settings.lightTrigger) return;
-            void this.confirmBedClear(bridge.id, 'good').catch((e) =>
+            void this.confirmBedClear(bridge.id, 'good', true).catch((e) =>
                 this.log.warn(`Queue: light trigger failed: ${(e as Error).message}`),
             );
         };
@@ -391,14 +391,19 @@ export class QueueService extends EventEmitter<{ bed_cleared: [printerId: string
         return this.status(printerId);
     }
 
-    async confirmBedClear(printerId: string, outcome: 'good' | 'bad' = 'good'): Promise<BedClearResultDto> {
+    async confirmBedClear(
+        printerId: string,
+        outcome: 'good' | 'bad' = 'good',
+        immediate = false,
+    ): Promise<BedClearResultDto> {
         await this.setAwaiting(printerId, false);
         if (outcome === 'bad') await this.reject(printerId);
         this.emit('bed_cleared', printerId, outcome);
         const bridge = this.bridges.get(printerId);
         const w = this.watches.get(printerId);
         if (!bridge?.settings.queueAutoStart || !w) return { started: null, startsAt: null };
-        if (bridge.settings.queueAutoStartDelaySec <= 0) {
+        if (immediate || bridge.settings.queueAutoStartDelaySec <= 0) {
+            cancelTimer(w);
             return { started: await this.dispatch(printerId).catch(() => null), startsAt: null };
         }
         if (!(await this.nextFor(printerId))) return { started: null, startsAt: null };

@@ -87,8 +87,8 @@ This is the community fork of [NatHacks/Kobralink](https://github.com/NatHacks/K
   `printer.awaitingBedClear` (finished ones when `queueBedClearConfirm` is on, the default; cancelled and failed ones
   always) until `POST printers/:id/queue/bed-clear` (`good`|`bad`; bad requeues the file first) or the opt-in light
   trigger (3 light reports from the printer screen within 20 s, `light_trigger` bridge event). With `queueAutoStart`,
-  the next file starts `queueAutoStartDelaySec` after that confirmation, or after a finished print when the
-  confirmation is off; `GET printers/:id/queue/status` returns the countdown (`autoStartAt`) and
+  the next file starts `queueAutoStartDelaySec` after a dashboard confirmation (right away from the light
+  trigger), or after a finished print when the confirmation is off; `GET printers/:id/queue/status` returns the countdown (`autoStartAt`) and
   `DELETE printers/:id/queue/auto-start` cancels it. `printer.maintenance` keeps a printer out. Items store the print dialog options
   (`queue_item.options`) and start with them. Scheduled prints (`schedule/`) fire a stored file at `startAt` and fall
   back to the front of the queue when the printer is busy. Maintenance tasks (`maintenance/`) are due by print
