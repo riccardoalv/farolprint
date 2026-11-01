@@ -239,6 +239,11 @@ Bambu tools so people migrating from them find things where they expect. The pha
   stores the difference on the job. The energy cost then uses that measurement; prints without a reading keep the
   estimate from the average draw. A meter that went backwards (reset, replaced plug) gives no reading rather than a
   wrong one. Reading a plug's own API without Home Assistant stays on the roadmap.
+- **The smart plug is chosen in Home Assistant** (maintainer's decision, October 2026). The printer settings no longer
+  ask for on, off and status URLs: with Home Assistant connected, a "Plug" card picks the plug's switch and its energy
+  meter from what Home Assistant lists, and the power button and the automation power action go through
+  `switch.turn_on`/`turn_off`. Without Home Assistant the card is hidden. URLs saved before still work for printers
+  that have them, but cannot be edited from the dashboard any more.
 - **Automations are rules, not scripts** (October 2026). A rule has one trigger (a print finished, a print cancelled
   or failed, a bed cleared, a spool running low, or a time of day), a target (one printer, the printers carrying all
   the given tags, or every printer) and up to ten actions run in order: a macro, the light, loading or unloading an

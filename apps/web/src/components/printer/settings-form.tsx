@@ -20,7 +20,7 @@ import { appSettingsQuery, filamentVendorsQuery } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 import { alertConfirmationDialogStore } from '@/stores/alert-confirmation-dialog';
 import { printersStore } from '@/stores/printers';
-import { EnergySensorField } from './energy-sensor-field';
+import { EnergySensorField, PlugSwitchField } from './plug-fields';
 import { PrinterSpecsCard } from './printer-specs-card';
 import { ProfileFields } from './profile-fields';
 
@@ -84,7 +84,9 @@ export function PrinterSettingsForm({
         },
         onError: (e) => toast.error(e.message),
     });
-    const currency = useQuery(appSettingsQuery).data?.currency ?? 'EUR';
+    const appSettings = useQuery(appSettingsQuery).data;
+    const currency = appSettings?.currency ?? 'EUR';
+    const haConfigured = Boolean(appSettings?.homeAssistant?.url && appSettings.homeAssistant.token);
     const openAlertDialog = alertConfirmationDialogStore.actions.openAlertDialog;
     const remove = useMutation({
         mutationFn: () => api.printers.remove(printer.id),
@@ -509,56 +511,22 @@ export function PrinterSettingsForm({
                 </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border-0 shadow-none">
-                <CardHeader>
-                    <CardTitle>{m.settings_power()}</CardTitle>
-                    <CardDescription>{m.settings_power_hint()}</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                    {(
-                        [
-                            [
-                                'settings.powerOnUrl',
-                                m.settings_power_on_url(),
-                                'http://192.168.1.50/cm?cmnd=Power%20On',
-                            ],
-                            [
-                                'settings.powerOffUrl',
-                                m.settings_power_off_url(),
-                                'http://192.168.1.50/cm?cmnd=Power%20Off',
-                            ],
-                            [
-                                'settings.powerStatusUrl',
-                                m.settings_power_status_url(),
-                                'http://192.168.1.50/cm?cmnd=Power',
-                            ],
-                        ] as const
-                    ).map(([name, label, placeholder]) => (
-                        <form.Field key={name} name={name}>
-                            {(field) => (
-                                <div className="grid gap-2">
-                                    <Label htmlFor={field.name}>{label}</Label>
-                                    <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="url"
-                                        placeholder={placeholder}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        aria-invalid={fieldInvalid(field.state.meta)}
-                                        className="rounded-full px-4"
-                                    />
-                                    <FieldError meta={field.state.meta} />
-                                </div>
-                            )}
+            {haConfigured && (
+                <Card className="rounded-3xl border-0 shadow-none">
+                    <CardHeader>
+                        <CardTitle>{m.plug_title()}</CardTitle>
+                        <CardDescription>{m.plug_hint()}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                        <form.Field name="settings.plugSwitch">
+                            {(field) => <PlugSwitchField value={field.state.value} onChange={field.handleChange} />}
                         </form.Field>
-                    ))}
-                    <form.Field name="settings.energySensor">
-                        {(field) => <EnergySensorField value={field.state.value} onChange={field.handleChange} />}
-                    </form.Field>
-                </CardContent>
-            </Card>
+                        <form.Field name="settings.energySensor">
+                            {(field) => <EnergySensorField value={field.state.value} onChange={field.handleChange} />}
+                        </form.Field>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card className="rounded-3xl border-0 shadow-none">
                 <CardHeader>

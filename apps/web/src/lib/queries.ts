@@ -173,3 +173,10 @@ export const haEnergySensorsQuery = queryOptions({
     staleTime: 30_000,
     retry: false,
 });
+
+export const haSwitchesQuery = queryOptions({
+    queryKey: ['home-assistant', 'switches'],
+    queryFn: api.homeAssistant.switches,
+    staleTime: 30_000,
+    retry: false,
+});

@@ -20,8 +20,8 @@ import {
 } from '@nestjs/common';
 import { BridgeRegistry } from '../bridge/bridge.registry';
 import type { PrinterBridge } from '../bridge/printer-bridge';
-import { fetchWithTimeout } from '../common/fetch';
 import type { AutomationRule as Row } from '../generated/prisma/client';
+import { PowerService } from '../home-assistant/power.service';
 import { m } from '../i18n/locale';
 import { MacroService } from '../macros/macro.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -60,6 +60,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
         private readonly macros: MacroService,
         private readonly notifications: NotificationService,
         private readonly queue: QueueService,
+        private readonly powerService: PowerService,
     ) {}
 
     onModuleInit(): void {
@@ -213,8 +214,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async power(bridge: PrinterBridge, action: 'on' | 'off'): Promise<void> {
-        const url = action === 'on' ? bridge.settings.powerOnUrl : bridge.settings.powerOffUrl;
-        if (!url) throw new Error(m.api_no_power_url({ action }));
+        if (!this.powerService.configured(bridge.settings)) throw new Error(m.api_no_plug());
         if (action === 'off') {
             if (this.busy(bridge)) throw new Error(m.api_automation_power_busy());
             const deadline = Date.now() + COOL_TIMEOUT_MS;
@@ -224,10 +224,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
             }
             if (this.busy(bridge)) throw new Error(m.api_automation_power_busy());
         }
-        const ok = await fetchWithTimeout(url)
-            .then((r) => r.ok)
-            .catch(() => false);
-        if (!ok) throw new Error(m.api_plug_unreachable());
+        await this.powerService.set(bridge.settings, action);
     }
 
     private busy(bridge: PrinterBridge): boolean {

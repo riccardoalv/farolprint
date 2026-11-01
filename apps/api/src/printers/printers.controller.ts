@@ -20,8 +20,8 @@ import {
     ServiceUnavailableException,
 } from '@nestjs/common';
 import { BridgeRegistry } from '../bridge/bridge.registry';
-import { fetchWithTimeout } from '../common/fetch';
 import { ZodPipe } from '../common/zod.pipe';
+import { PowerService } from '../home-assistant/power.service';
 import { m } from '../i18n/locale';
 import { PrintersService } from './printers.service';
 
@@ -30,6 +30,7 @@ export class PrintersController {
     constructor(
         private readonly printers: PrintersService,
         private readonly registry: BridgeRegistry,
+        private readonly powerService: PowerService,
     ) {}
 
     @Get()
@@ -86,37 +87,25 @@ export class PrintersController {
     @Post(':id/power')
     async power(@Param('id') id: string, @Body(new ZodPipe(powerActionSchema)) body: PowerActionInput) {
         const settings = this.registry.get(id).settings;
-        const url = body.action === 'on' ? settings.powerOnUrl : settings.powerOffUrl;
-        if (!url) throw new BadRequestException(m.api_no_power_url({ action: body.action }));
-        const ok = await fetchWithTimeout(url)
-            .then((r) => r.ok)
-            .catch(() => false);
-        if (!ok) throw new ServiceUnavailableException(m.api_plug_unreachable());
+        if (!this.powerService.configured(settings)) throw new BadRequestException(m.api_no_plug());
+        try {
+            await this.powerService.set(settings, body.action);
+        } catch (e) {
+            throw new ServiceUnavailableException((e as Error).message);
+        }
         return { state: body.action };
     }
 
     @Get(':id/power')
     async powerStatus(@Param('id') id: string): Promise<{ state: PowerState; configured: boolean }> {
         const settings = this.registry.get(id).settings;
-        const configured = Boolean(settings.powerOnUrl || settings.powerOffUrl);
-        if (!settings.powerStatusUrl) return { state: 'unknown', configured };
-        let text = '';
+        const configured = this.powerService.configured(settings);
+        if (!configured) return { state: 'unknown', configured };
         try {
-            text = await fetchWithTimeout(settings.powerStatusUrl).then((r) => r.text());
-        } catch {
-            throw new ServiceUnavailableException(m.api_plug_unreachable());
+            return { state: await this.powerService.state(settings), configured };
+        } catch (e) {
+            throw new ServiceUnavailableException((e as Error).message);
         }
-        let state: PowerState = 'unknown';
-        try {
-            const power = String((JSON.parse(text) as { POWER?: string }).POWER ?? '').toUpperCase();
-            if (power === 'ON' || power === 'OFF') state = power.toLowerCase() as PowerState;
-        } catch {}
-        if (state === 'unknown') {
-            const up = text.toUpperCase();
-            if (up.includes('ON') && !up.includes('OFF')) state = 'on';
-            else if (up.includes('OFF')) state = 'off';
-        }
-        return { state, configured };
     }
 
     @Post(':id/reconnect')

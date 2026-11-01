@@ -101,7 +101,9 @@ This is the community fork of [NatHacks/Kobralink](https://github.com/NatHacks/K
   after a print and estimate accuracy; `compute` also returns the previous period (`previous`) for comparisons.
 - Energy: `home-assistant/` (`HaApiService` = Home Assistant REST API with `settings.homeAssistant` url + token,
   `EnergyService` reads `printerSettings.energySensor` in kWh on the bridge `job` start/end and stores
-  `print_job.energyStartKwh`/`energyKwh`); `jobCost` prices `energyKwh` when present, else the average draw.
+  `print_job.energyStartKwh`/`energyKwh`; `PowerService` switches `printerSettings.plugSwitch` through Home Assistant,
+  falling back to the legacy `powerOnUrl`/`powerOffUrl`/`powerStatusUrl`); `jobCost` prices `energyKwh` when present,
+  else the average draw.
 - Macros are lists of JSON actions (`macroActionSchema` in `packages/shared/src/macros.ts`), not G-code; run by
   `macro.service.ts` through the `PrinterBridge` methods.
 - Automations (`automations/automation.service.ts`, `automation_rule` table, schemas in

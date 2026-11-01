@@ -13,6 +13,15 @@ export class HomeAssistantController {
         return this.ha.test(body);
     }
 
+    @Get('switches')
+    async switches() {
+        try {
+            return await this.ha.switches();
+        } catch (e) {
+            throw new BadGatewayException((e as Error).message);
+        }
+    }
+
     @Get('energy-sensors')
     async energySensors() {
         try {
