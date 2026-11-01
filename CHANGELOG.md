@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/riccardoalv/farolprint/compare/v0.16.0...v0.16.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **queue:** start the next file right away from the light trigger ([#45](https://github.com/riccardoalv/farolprint/issues/45)) ([5a771fc](https://github.com/riccardoalv/farolprint/commit/5a771fc827af88d8d325932f973c4265966e0089))
+
 ## [0.16.0](https://github.com/riccardoalv/farolprint/compare/v0.15.0...v0.16.0) (2026-11-01)
 
 
