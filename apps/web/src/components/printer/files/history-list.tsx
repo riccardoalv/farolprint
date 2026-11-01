@@ -68,6 +68,9 @@ export function HistoryList({
                         <span className="w-20 text-right tabular-nums text-muted-foreground">
                             {formatDuration(j.durationSec ?? 0)}
                         </span>
+                        <span className="hidden w-20 text-right tabular-nums text-muted-foreground md:inline">
+                            {j.energyKwh === null ? '' : m.energy_kwh({ kwh: j.energyKwh.toFixed(2) })}
+                        </span>
                         <span className="hidden w-20 text-right tabular-nums text-muted-foreground sm:inline">
                             {j.cost ? formatMoney(j.cost.total, currency) : ''}
                         </span>

@@ -71,6 +71,7 @@ const data: StatsDto = {
     },
     utilization: 0.25,
     previous: null,
+    energyKwh: null,
 };
 
 const printer: StatsPrinterEntry = {
@@ -87,6 +88,7 @@ const printer: StatsPrinterEntry = {
     mtbfSec: 3600,
     idleAfterSec: 900,
     estimateRatio: 1.25,
+    energyKwh: null,
 };
 
 describe('StatsBody', () => {
@@ -186,6 +188,14 @@ describe('StatsBody comparisons and printers', () => {
         expect(screen.getByText(m.stats_estimate_accuracy_value({ pct: 80 }))).toBeTruthy();
         expect(screen.getByText(m.stats_mtbf_none())).toBeTruthy();
         expect(screen.getAllByText(m.stats_unknown()).length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('shows the energy measured on a printer', async () => {
+        await renderWithProviders(
+            <StatsBody data={{ ...data, printers: [{ ...printer, energyKwh: 3.2 }] }} days={30} />,
+        );
+        expect(screen.getByText(m.stats_energy_measured())).toBeTruthy();
+        expect(screen.getByText(m.energy_kwh({ kwh: '3.20' }))).toBeTruthy();
     });
 
     it('shows the cumulative share of each failure reason', async () => {

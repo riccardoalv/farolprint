@@ -1226,5 +1226,22 @@
     "queue_when_now": "sofort",
     "queue_when_after": "{seconds} s später",
     "queue_starts_in": "Die nächste Datei startet in {seconds} s",
-    "queue_cancel_start": "Start abbrechen"
+    "queue_cancel_start": "Start abbrechen",
+    "api_ha_not_configured": "Home Assistant ist nicht eingerichtet (URL und Token)",
+    "api_ha_unauthorized": "Home Assistant hat das Token abgelehnt",
+    "api_ha_http_error": "Home Assistant antwortete mit Fehler {status}",
+    "api_ha_unreachable": "Home Assistant ist unter dieser Adresse nicht erreichbar",
+    "ha_api_title": "Home Assistant (Energiemessung)",
+    "ha_api_hint": "Liest den Energiezähler der Steckdose jedes Druckers zu Beginn und am Ende eines Drucks: Die Energiekosten nutzen den echten Messwert statt des Durchschnittsverbrauchs.",
+    "ha_api_url": "Home-Assistant-Adresse",
+    "ha_api_token": "Langlebiges Zugriffstoken",
+    "ha_api_token_hint": "In Home Assistant: dein Profil → Sicherheit → Langlebige Zugriffstoken → Token erstellen.",
+    "ha_api_test": "Verbindung testen",
+    "ha_api_test_ok": "Mit Home Assistant verbunden",
+    "energy_sensor": "Energiezähler (Home Assistant)",
+    "energy_sensor_hint": "Der kWh-Sensor der Steckdose dieses Druckers. Leer lassen, um mit dem Durchschnittsverbrauch zu schätzen.",
+    "energy_sensor_none": "Keiner (schätzen)",
+    "energy_sensor_setup": "Richte Home Assistant unter Einstellungen → Integrationen ein, um den Zähler zu wählen.",
+    "energy_kwh": "{kwh} kWh",
+    "stats_energy_measured": "Gemessene Energie"
 }

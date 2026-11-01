@@ -314,3 +314,50 @@ describe('StatsService.compute fleet metrics', () => {
         expect(stats.utilization).toBeGreaterThan(0);
     });
 });
+
+describe('StatsService with measured energy', () => {
+    let metered: TestDb;
+
+    beforeAll(async () => {
+        metered = await testDb();
+        await seedPrinter(metered.client, 'm1', 'Metered');
+        await metered.client.printer.update({
+            where: { id: 'm1' },
+            data: { settings: JSON.stringify({ energySensor: 'sensor.kobra_energy' }) },
+        });
+        await seedJob(metered.client, 'm1', {
+            filename: 'measured.gcode',
+            durationSec: 3600,
+            energyKwh: 0.5,
+            startedAt: at(1),
+        });
+        await seedJob(metered.client, 'm1', { filename: 'estimated.gcode', durationSec: 3600, startedAt: at(2) });
+    });
+
+    afterAll(() => metered.close());
+
+    it('prices the measured energy and adds it up per printer and in total', async () => {
+        current = appSettingsSchema.parse({ currency: 'EUR', costs: { energyPricePerKwh: 0.8 } });
+        const svc = new StatsService(metered.prisma, settings);
+        const history = await svc.history('m1');
+        expect(history.find((j) => j.filename === 'measured.gcode')).toMatchObject({
+            energyKwh: 0.5,
+            cost: { energy: 0.4 },
+        });
+        expect(history.find((j) => j.filename === 'estimated.gcode')?.energyKwh).toBeNull();
+        const stats = await svc.compute('m1', 30);
+        expect(stats.energyKwh).toBe(0.5);
+        expect(stats.energyCost).toBe(0.4);
+        expect(stats.printers[0].energyKwh).toBe(0.5);
+        const csv = (await svc.exportCsv('m1', 30)).trimEnd().split('\r\n');
+        expect(csv[0].split(',')).toContain('energy_kwh');
+        expect(csv.some((l) => l.includes('measured.gcode') && l.includes(',0.5,'))).toBe(true);
+    });
+
+    it('has no measured energy without readings', async () => {
+        current = unpriced;
+        const stats = await new StatsService(db.prisma, settings).compute('p1', 30);
+        expect(stats.energyKwh).toBeNull();
+        expect(stats.printers[0].energyKwh).toBeNull();
+    });
+});

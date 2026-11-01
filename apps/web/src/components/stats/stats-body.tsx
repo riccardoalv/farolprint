@@ -468,6 +468,7 @@ function PrinterRow({ printer: p, costSuffix }: { printer: StatsPrinterEntry; co
                 ? m.stats_unknown()
                 : m.stats_estimate_accuracy_value({ pct: Math.round((1 / p.estimateRatio) * 100) }),
         ],
+        ...(p.energyKwh === null ? [] : [[m.stats_energy_measured(), m.energy_kwh({ kwh: p.energyKwh.toFixed(2) })]]),
     ];
     return (
         <li className="rounded-2xl bg-secondary/60 p-3">

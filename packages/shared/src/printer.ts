@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ENERGY_SENSOR_PATTERN } from './home-assistant';
 import { patchSchema } from './patch';
 
 export const alertSettingsSchema = z.object({
@@ -61,6 +62,7 @@ export const printerSettingsSchema = z.object({
     queueAutoStartDelaySec: z.number().int().min(0).max(3600).default(15),
     failureDetection: z.boolean().default(true),
     lightTrigger: z.boolean().default(false),
+    energySensor: z.union([z.literal(''), z.string().trim().regex(ENERGY_SENSOR_PATTERN)]).default(''),
     alerts: alertSettingsSchema.default(alertSettingsSchema.parse({})),
     profile: printerProfileSchema.default(printerProfileSchema.parse({})),
 });

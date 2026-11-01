@@ -14,6 +14,7 @@ export function round2(v: number): number {
 export interface MachineCost {
     powerW?: number | null;
     depreciationPerHour?: number;
+    measuresEnergy?: boolean;
 }
 
 export function jobCost(
@@ -21,10 +22,12 @@ export function jobCost(
     filamentCost: number,
     costs: CostSettings,
     machineCost: MachineCost = {},
+    energyKwh: number | null = null,
 ): JobCost {
     const hours = Math.max(0, durationSec) / 3600;
     const powerW = machineCost.powerW ?? costs.printerPowerW;
-    const energy = (powerW / 1000) * hours * costs.energyPricePerKwh;
+    const kwh = energyKwh ?? (powerW / 1000) * hours;
+    const energy = kwh * costs.energyPricePerKwh;
     const machine = hours * (costs.hourlyRate + Math.max(0, machineCost.depreciationPerHour ?? 0));
     const filament = Math.max(0, filamentCost);
     return {

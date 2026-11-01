@@ -14,6 +14,7 @@ import { DryScheduleModule } from './dry/dry-schedule.module';
 import { FilamentModule } from './filament/filament.module';
 import { GcodeModule } from './gcode/gcode.module';
 import { HaMqttModule } from './ha/ha-mqtt.module';
+import { HomeAssistantModule } from './home-assistant/home-assistant.module';
 import { MacroModule } from './macros/macro.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { NotificationModule } from './notifications/notification.module';
@@ -45,6 +46,7 @@ const env = loadEnv();
         MaintenanceModule,
         MacroModule,
         HaMqttModule,
+        HomeAssistantModule,
         FilamentModule,
         BridgeModule,
         CoreModule,

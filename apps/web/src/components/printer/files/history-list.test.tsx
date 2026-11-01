@@ -36,6 +36,7 @@ const base: PrintJobDto = {
     note: '',
     hasSnapshot: false,
     pausedAt: null,
+    energyKwh: null,
     cost: { filament: 0.5, energy: 0.1, machine: 1, total: 1.6 },
 };
 
@@ -64,6 +65,19 @@ describe('HistoryList', () => {
         expect(label.textContent).toContain(m.failure_reason_spaghetti());
         expect(label.querySelectorAll('svg')).toHaveLength(2);
         expect(screen.getAllByRole('button')).toHaveLength(1);
+    });
+
+    it('shows the energy measured for a print', async () => {
+        await renderWithProviders(
+            <HistoryList
+                printerId="p1"
+                jobs={[
+                    { ...base, energyKwh: 0.4321 },
+                    { ...base, id: 'j9' },
+                ]}
+            />,
+        );
+        expect(screen.getAllByText(m.energy_kwh({ kwh: '0.43' }))).toHaveLength(1);
     });
 
     it('opens the failure dialog for the clicked job', async () => {

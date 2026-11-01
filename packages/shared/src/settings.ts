@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { homeAssistantApiSettingsSchema } from './home-assistant';
 import { patchSchema } from './patch';
 
 export const notificationEventsSchema = z.object({
@@ -85,6 +86,7 @@ export const appSettingsSchema = z.object({
     moonrakerApiKey: z.boolean().default(false),
     notifications: notificationSettingsSchema.default(notificationSettingsSchema.parse({})),
     haMqtt: haMqttSettingsSchema.default(haMqttSettingsSchema.parse({})),
+    homeAssistant: homeAssistantApiSettingsSchema.default(homeAssistantApiSettingsSchema.parse({})),
     aceDryPresets: z.array(aceDryPresetSchema).max(20).default(DEFAULT_DRY_PRESETS),
     failureDetection: failureDetectionSettingsSchema.default(failureDetectionSettingsSchema.parse({})),
     publicUrl: z.union([z.literal(''), z.url()]).default(''),

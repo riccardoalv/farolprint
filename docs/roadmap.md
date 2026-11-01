@@ -59,5 +59,5 @@ and docs; the reasons behind the choices are in [decisions.md](decisions.md#dash
 ## Later
 
 - A queue timeline: when each queued item is expected to start and end on each printer.
-- Energy sensors (smart plugs through Home Assistant, or a plug's own API) measure each print's real consumption and
-  replace the average draw entered in the printer profile.
+- Energy straight from a plug's own API (Tasmota, Shelly) for people without Home Assistant; the Home Assistant
+  meter shipped in 0.15.

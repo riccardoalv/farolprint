@@ -82,6 +82,7 @@ const job: PrintJobDto = {
     note: '',
     hasSnapshot: false,
     pausedAt: null,
+    energyKwh: null,
     cost: null,
 };
 

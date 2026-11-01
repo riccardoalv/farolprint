@@ -1226,5 +1226,22 @@
     "queue_when_now": "立即",
     "queue_when_after": "{seconds} 秒后",
     "queue_starts_in": "下一个文件将在 {seconds} 秒后开始",
-    "queue_cancel_start": "取消开始"
+    "queue_cancel_start": "取消开始",
+    "api_ha_not_configured": "尚未配置 Home Assistant（URL 和令牌）",
+    "api_ha_unauthorized": "Home Assistant 拒绝了该令牌",
+    "api_ha_http_error": "Home Assistant 返回错误 {status}",
+    "api_ha_unreachable": "无法通过此地址连接 Home Assistant",
+    "ha_api_title": "Home Assistant（电量计量）",
+    "ha_api_hint": "在打印开始和结束时读取每台打印机插座的电量计，能耗成本使用实际测量值而不是平均功耗。",
+    "ha_api_url": "Home Assistant 地址",
+    "ha_api_token": "长期访问令牌",
+    "ha_api_token_hint": "在 Home Assistant 中：个人资料 → 安全 → 长期访问令牌 → 创建令牌。",
+    "ha_api_test": "测试连接",
+    "ha_api_test_ok": "已连接到 Home Assistant",
+    "energy_sensor": "电量计（Home Assistant）",
+    "energy_sensor_hint": "此打印机插座的 kWh 传感器。留空则按平均功耗估算。",
+    "energy_sensor_none": "无（估算）",
+    "energy_sensor_setup": "在 设置 → 集成 中配置 Home Assistant 后即可选择电量计。",
+    "energy_kwh": "{kwh} kWh",
+    "stats_energy_measured": "实测电量"
 }

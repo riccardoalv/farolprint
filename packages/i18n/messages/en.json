@@ -1226,5 +1226,22 @@
     "queue_when_now": "right away",
     "queue_when_after": "{seconds} s later",
     "queue_starts_in": "Next file starts in {seconds} s",
-    "queue_cancel_start": "Cancel start"
+    "queue_cancel_start": "Cancel start",
+    "api_ha_not_configured": "Home Assistant is not configured (URL and token)",
+    "api_ha_unauthorized": "Home Assistant refused the token",
+    "api_ha_http_error": "Home Assistant answered with error {status}",
+    "api_ha_unreachable": "Home Assistant cannot be reached at this address",
+    "ha_api_title": "Home Assistant (energy metering)",
+    "ha_api_hint": "Reads the energy meter of each printer's plug at the start and end of a print: the energy cost uses the real measurement instead of the average draw.",
+    "ha_api_url": "Home Assistant address",
+    "ha_api_token": "Long-lived access token",
+    "ha_api_token_hint": "In Home Assistant: your profile → Security → Long-lived access tokens → Create token.",
+    "ha_api_test": "Test the connection",
+    "ha_api_test_ok": "Connected to Home Assistant",
+    "energy_sensor": "Energy meter (Home Assistant)",
+    "energy_sensor_hint": "The kWh sensor of this printer's plug. Leave it empty to estimate with the average draw.",
+    "energy_sensor_none": "None (estimate)",
+    "energy_sensor_setup": "Set up Home Assistant in Settings → Integrations to pick the meter.",
+    "energy_kwh": "{kwh} kWh",
+    "stats_energy_measured": "Measured energy"
 }

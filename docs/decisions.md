@@ -233,6 +233,12 @@ Bambu tools so people migrating from them find things where they expect. The pha
 - **The cancel dialog asks why** (maintainer's decision), with the same reasons as the history and "Don't say" as the
   default. The reason is kept by the bridge until the print ends and stored on the job; a cancel from OrcaSlicer or
   the printer screen stays unlabelled and can be labelled later from the history.
+- **Measured energy comes from Home Assistant** (maintainer's request, October 2026). FarolPrint reads the kWh meter of
+  a printer's plug through the Home Assistant REST API (address and a long-lived token in Settings → Integrations, the
+  meter picked per printer from the energy sensors Home Assistant lists) at the start and the end of each print, and
+  stores the difference on the job. The energy cost then uses that measurement; prints without a reading keep the
+  estimate from the average draw. A meter that went backwards (reset, replaced plug) gives no reading rather than a
+  wrong one. Reading a plug's own API without Home Assistant stays on the roadmap.
 - **Automations are rules, not scripts** (October 2026). A rule has one trigger (a print finished, a print cancelled
   or failed, a bed cleared, a spool running low, or a time of day), a target (one printer, the printers carrying all
   the given tags, or every printer) and up to ten actions run in order: a macro, the light, loading or unloading an

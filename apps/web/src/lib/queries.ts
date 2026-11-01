@@ -166,3 +166,10 @@ export const printerDetectionQuery = (id: string, enabled: boolean) =>
         enabled,
         refetchInterval: 5000,
     });
+
+export const haEnergySensorsQuery = queryOptions({
+    queryKey: ['home-assistant', 'energy-sensors'],
+    queryFn: api.homeAssistant.energySensors,
+    staleTime: 30_000,
+    retry: false,
+});

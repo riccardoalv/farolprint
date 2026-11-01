@@ -48,8 +48,15 @@ export class StatsService {
             costs,
             printers: new Map(
                 printerRows.map((p) => {
-                    const { profile } = PrintersService.parseSettings(p.settings);
-                    return [p.id, { powerW: profile.powerW, depreciationPerHour: depreciationPerHour(profile) }];
+                    const parsed = PrintersService.parseSettings(p.settings);
+                    return [
+                        p.id,
+                        {
+                            powerW: parsed.profile.powerW,
+                            depreciationPerHour: depreciationPerHour(parsed.profile),
+                            measuresEnergy: Boolean(parsed.energySensor),
+                        },
+                    ];
                 }),
             ),
         };
@@ -157,6 +164,7 @@ export class StatsService {
         let energyCost = 0;
         let machineCost = 0;
         let unpricedG = 0;
+        let energyKwh: number | null = null;
 
         for (const j of finished) {
             const d = j.startedAt;
@@ -193,6 +201,10 @@ export class StatsService {
             pe.filamentMm += j.filamentMm;
             pe.weightG += priced.weightG;
             pe.cost += jobCost;
+            if (j.energyKwh !== null) {
+                pe.energyKwh = (pe.energyKwh ?? 0) + j.energyKwh;
+                energyKwh = (energyKwh ?? 0) + j.energyKwh;
+            }
             printers.set(j.printerId, pe);
 
             const fk = j.fileId ?? j.filename;
@@ -284,6 +296,7 @@ export class StatsService {
                     filamentMm: Math.round(p.filamentMm),
                     weightG: Math.round(p.weightG),
                     cost: round2(p.cost),
+                    energyKwh: p.energyKwh === null ? null : round3(p.energyKwh),
                 }))
                 .sort((a, b) => b.durationSec - a.durationSec),
             topFiles: [...files.values()]
@@ -304,6 +317,7 @@ export class StatsService {
                 .sort((a, b) => b.count - a.count),
             waste: { paused: roundWaste(waste.paused), cancelled: roundWaste(waste.cancelled) },
             utilization: utilization(totalDuration, windowSec, fleetSize),
+            energyKwh: energyKwh === null ? null : round3(energyKwh),
             previous: previousJobs ? this.summarize(previousJobs, ctx, days * 86_400, fleetSize) : null,
         };
     }
@@ -344,7 +358,12 @@ function emptyPrinter(printerId: string, name?: string): StatsPrinterEntry {
         mtbfSec: null,
         idleAfterSec: null,
         estimateRatio: null,
+        energyKwh: null,
     };
+}
+
+function round3(v: number): number {
+    return Math.round(v * 1000) / 1000;
 }
 
 function sinceDate(days: number): Date | undefined {

@@ -405,6 +405,7 @@ export function toJobDto(j: PrintJob, thumbnail: string | null = null): PrintJob
         note: j.note,
         hasSnapshot: Boolean(j.snapshot),
         pausedAt: j.pausedAt?.toISOString() ?? null,
+        energyKwh: j.energyKwh ?? null,
         cost: null,
     };
 }
