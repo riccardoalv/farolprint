@@ -108,9 +108,9 @@ export function PrintCard({ printerId, className }: { printerId: string; classNa
                     <dl className="grid grid-cols-3 gap-2">
                         <Kv
                             k={m.print_elapsed()}
-                            v={calibrating ? '—' : formatDuration(clock.elapsedSec, { zero: true })}
+                            v={calibrating ? '—' : formatDuration(clock.elapsedSec, { zero: true, units: 2 })}
                         />
-                        <Kv k={m.print_remaining()} v={formatDuration(remaining, { zero: true })} />
+                        <Kv k={m.print_remaining()} v={formatDuration(remaining, { zero: true, units: 2 })} />
                         {liveFile ? (
                             <LayerKv printerId={printerId} file={liveFile} currLayer={state.currLayer} />
                         ) : (
@@ -275,7 +275,7 @@ function ActionButton({
             className={cn(
                 'flex h-10 shrink-0 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50 [&_svg]:size-4',
                 wide
-                    ? 'flex-1 bg-primary-foreground px-4 text-primary-strong hover:bg-primary-foreground/90'
+                    ? 'flex-1 bg-card px-4 text-primary-strong shadow-sm hover:bg-card/90'
                     : danger
                       ? 'w-10 bg-destructive text-white hover:bg-destructive/90'
                       : 'w-10 bg-primary-foreground/15 hover:bg-primary-foreground/25',

@@ -71,7 +71,7 @@ export function QueueItemRow({
                     {item.filename}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <span>{formatDuration(item.estPrintTimeSec)}</span>
+                    <span>{formatDuration(item.estPrintTimeSec, { units: 2 })}</span>
                     <span>· {targetLabel(item, printers)}</span>
                     {item.excludedObjects.length ? (
                         <span>· {m.queue_excluded({ n: item.excludedObjects.length })}</span>
