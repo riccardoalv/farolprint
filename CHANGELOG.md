@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/riccardoalv/farolprint/compare/v0.15.0...v0.16.0) (2026-11-01)
+
+
+### Features
+
+* pick the printer smart plug in Home Assistant ([#43](https://github.com/riccardoalv/farolprint/issues/43)) ([c9a9df0](https://github.com/riccardoalv/farolprint/commit/c9a9df01c127366792f180c6a21098c9548f06d1))
+
 ## [0.15.0](https://github.com/riccardoalv/farolprint/compare/v0.14.1...v0.15.0) (2026-11-01)
 
 
