@@ -61,6 +61,7 @@ export interface PrintJobDto {
     note: string;
     hasSnapshot: boolean;
     pausedAt: string | null;
+    energyKwh: number | null;
     cost: JobCost | null;
 }
 

@@ -1226,5 +1226,22 @@
     "queue_when_now": "na hora",
     "queue_when_after": "{seconds} s depois",
     "queue_starts_in": "O próximo arquivo começa em {seconds} s",
-    "queue_cancel_start": "Cancelar início"
+    "queue_cancel_start": "Cancelar início",
+    "api_ha_not_configured": "O Home Assistant não está configurado (URL e token)",
+    "api_ha_unauthorized": "O Home Assistant recusou o token",
+    "api_ha_http_error": "O Home Assistant respondeu com o erro {status}",
+    "api_ha_unreachable": "Não foi possível acessar o Home Assistant nesse endereço",
+    "ha_api_title": "Home Assistant (medição de energia)",
+    "ha_api_hint": "Lê o medidor de energia da tomada de cada impressora no início e no fim de uma impressão: o custo de energia usa a medição real em vez do consumo médio.",
+    "ha_api_url": "Endereço do Home Assistant",
+    "ha_api_token": "Token de acesso de longa duração",
+    "ha_api_token_hint": "No Home Assistant: seu perfil → Segurança → Tokens de acesso de longa duração → Criar token.",
+    "ha_api_test": "Testar conexão",
+    "ha_api_test_ok": "Conectado ao Home Assistant",
+    "energy_sensor": "Medidor de energia (Home Assistant)",
+    "energy_sensor_hint": "O sensor em kWh da tomada desta impressora. Deixe vazio para estimar pelo consumo médio.",
+    "energy_sensor_none": "Nenhum (estimar)",
+    "energy_sensor_setup": "Configure o Home Assistant em Configurações → Integrações para escolher o medidor.",
+    "energy_kwh": "{kwh} kWh",
+    "stats_energy_measured": "Energia medida"
 }

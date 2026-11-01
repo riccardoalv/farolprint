@@ -41,6 +41,7 @@ export interface StatsPrinterEntry {
     mtbfSec: number | null;
     idleAfterSec: number | null;
     estimateRatio: number | null;
+    energyKwh: number | null;
 }
 
 export interface StatsWasteEntry {
@@ -103,4 +104,5 @@ export interface StatsDto {
     waste: StatsWaste;
     utilization: number | null;
     previous: StatsSummary | null;
+    energyKwh: number | null;
 }

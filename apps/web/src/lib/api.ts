@@ -19,6 +19,9 @@ import type {
     FilamentProfile,
     FileObjectsDto,
     GcodeFileDto,
+    HaEnergySensorDto,
+    HaTestResultDto,
+    HomeAssistantTestInput,
     ImportProfilesResult,
     LocalSpoolDto,
     LocalSpoolInput,
@@ -257,6 +260,10 @@ export const api = {
             request<void>(printerId ? `/api/v1/printers/${printerId}/queue` : '/api/v1/queue', { method: 'DELETE' }),
     },
 
+    homeAssistant: {
+        test: (input: HomeAssistantTestInput) => request<HaTestResultDto>('/api/v1/home-assistant/test', json(input)),
+        energySensors: () => request<HaEnergySensorDto[]>('/api/v1/home-assistant/energy-sensors'),
+    },
     automations: {
         list: () => request<AutomationRuleDto[]>('/api/v1/automations'),
         create: (input: AutomationRuleInput) => request<AutomationRuleDto>('/api/v1/automations', json(input)),

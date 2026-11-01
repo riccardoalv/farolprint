@@ -99,6 +99,9 @@ This is the community fork of [NatHacks/Kobralink](https://github.com/NatHacks/K
   label (`failureReason`, `note`) editable with `PATCH history/:jobId`; `POST print/cancel` takes an optional
   `reason` the bridge stores on the job when it ends. `stats/stats-metrics.ts` defines utilisation, MTBF, idle time
   after a print and estimate accuracy; `compute` also returns the previous period (`previous`) for comparisons.
+- Energy: `home-assistant/` (`HaApiService` = Home Assistant REST API with `settings.homeAssistant` url + token,
+  `EnergyService` reads `printerSettings.energySensor` in kWh on the bridge `job` start/end and stores
+  `print_job.energyStartKwh`/`energyKwh`); `jobCost` prices `energyKwh` when present, else the average draw.
 - Macros are lists of JSON actions (`macroActionSchema` in `packages/shared/src/macros.ts`), not G-code; run by
   `macro.service.ts` through the `PrinterBridge` methods.
 - Automations (`automations/automation.service.ts`, `automation_rule` table, schemas in

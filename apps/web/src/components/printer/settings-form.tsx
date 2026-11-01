@@ -20,6 +20,7 @@ import { appSettingsQuery, filamentVendorsQuery } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 import { alertConfirmationDialogStore } from '@/stores/alert-confirmation-dialog';
 import { printersStore } from '@/stores/printers';
+import { EnergySensorField } from './energy-sensor-field';
 import { PrinterSpecsCard } from './printer-specs-card';
 import { ProfileFields } from './profile-fields';
 
@@ -553,6 +554,9 @@ export function PrinterSettingsForm({
                             )}
                         </form.Field>
                     ))}
+                    <form.Field name="settings.energySensor">
+                        {(field) => <EnergySensorField value={field.state.value} onChange={field.handleChange} />}
+                    </form.Field>
                 </CardContent>
             </Card>
 

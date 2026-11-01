@@ -71,6 +71,7 @@ export async function seedJob(
         errorCode: number;
         pausedAt: Date | null;
         finishedAt: Date | null;
+        energyKwh: number | null;
     }> = {},
 ) {
     return client.printJob.create({
@@ -88,6 +89,7 @@ export async function seedJob(
             failureReason: data.failureReason ?? '',
             errorCode: data.errorCode ?? 0,
             pausedAt: data.pausedAt ?? null,
+            energyKwh: data.energyKwh ?? null,
         },
     });
 }

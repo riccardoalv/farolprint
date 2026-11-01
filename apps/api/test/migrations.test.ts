@@ -283,3 +283,16 @@ describe('automation rules migration', () => {
         }
     });
 });
+
+describe('job energy migration', () => {
+    it('adds the energy readings to print jobs, empty by default', async () => {
+        const db = await testDb();
+        try {
+            expect(await columns(db.file, 'print_job')).toEqual(
+                expect.arrayContaining(['energyStartKwh', 'energyKwh']),
+            );
+        } finally {
+            await db.close();
+        }
+    });
+});

@@ -45,6 +45,7 @@ const job: PrintJobDto = {
     note: 'spool ended',
     hasSnapshot: true,
     pausedAt: null,
+    energyKwh: null,
     cost: null,
 };
 

@@ -45,6 +45,7 @@ export interface JobLike {
     spoolUsage: string;
     filename: string;
     file?: { filaments?: string } | null;
+    energyKwh?: number | null;
 }
 
 export function parseUsage(raw: string): SpoolUsageEntry[] {
@@ -89,6 +90,7 @@ export function priceJob(job: JobLike, ctx: PricingContext): PricedJob {
             filamentCost,
             ctx.costs,
             (job.printerId && ctx.printers?.get(job.printerId)) || {},
+            job.energyKwh ?? null,
         ),
     };
 }
@@ -100,7 +102,9 @@ export function hasAnyPricing(ctx: PricingContext): boolean {
         c.hourlyRate > 0 ||
         (c.energyPricePerKwh > 0 && c.printerPowerW > 0) ||
         [...(ctx.printers?.values() ?? [])].some(
-            (p) => (p.depreciationPerHour ?? 0) > 0 || (c.energyPricePerKwh > 0 && (p.powerW ?? 0) > 0),
+            (p) =>
+                (p.depreciationPerHour ?? 0) > 0 ||
+                (c.energyPricePerKwh > 0 && ((p.powerW ?? 0) > 0 || Boolean(p.measuresEnergy))),
         )
     );
 }

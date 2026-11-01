@@ -7,6 +7,7 @@ export * from './events';
 export * from './filament';
 export * from './files';
 export * from './forms';
+export * from './home-assistant';
 export * from './macros';
 export * from './maintenance';
 export * from './patch';
