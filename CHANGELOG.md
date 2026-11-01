@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/riccardoalv/farolprint/compare/v0.14.1...v0.15.0) (2026-11-01)
+
+
+### Features
+
+* measure the energy of each print from Home Assistant ([#41](https://github.com/riccardoalv/farolprint/issues/41)) ([5825723](https://github.com/riccardoalv/farolprint/commit/5825723ed2f99fba3e81001c9abba374e75a521f))
+
 ## [0.14.1](https://github.com/riccardoalv/farolprint/compare/v0.14.0...v0.14.1) (2026-10-30)
 
 
