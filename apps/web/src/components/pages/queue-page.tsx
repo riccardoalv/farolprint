@@ -110,7 +110,7 @@ export function QueuePage() {
                         ) : (
                             <>
                                 <p className="text-xs text-muted-foreground">
-                                    {m.queue_total({ n: items.length, duration: formatDuration(total) })}
+                                    {m.queue_total({ n: items.length, duration: formatDuration(total, { units: 2 }) })}
                                 </p>
                                 <ul className="grid gap-2">
                                     {items.map((item, i) => (

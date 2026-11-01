@@ -13,6 +13,13 @@ export const homeAssistantTestSchema = z.object({
 export type HomeAssistantTestInput = z.infer<typeof homeAssistantTestSchema>;
 
 export const ENERGY_SENSOR_PATTERN = /^sensor\.[a-z0-9_]+$/;
+export const PLUG_SWITCH_PATTERN = /^switch\.[a-z0-9_]+$/;
+
+export interface HaSwitchDto {
+    entityId: string;
+    name: string;
+    on: boolean | null;
+}
 
 export interface HaEnergySensorDto {
     entityId: string;

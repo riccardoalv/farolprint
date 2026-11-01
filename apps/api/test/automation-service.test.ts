@@ -4,6 +4,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AutomationService } from '../src/automations/automation.service';
 import type { BridgeRegistry } from '../src/bridge/bridge.registry';
 import type { PrinterBridge } from '../src/bridge/printer-bridge';
+import type { HaApiService } from '../src/home-assistant/ha-api.service';
+import { PowerService } from '../src/home-assistant/power.service';
 import { installI18n } from '../src/i18n/locale';
 import type { MacroService } from '../src/macros/macro.service';
 import type { NotificationService } from '../src/notifications/notification.service';
@@ -69,6 +71,7 @@ beforeAll(async () => {
         macros as unknown as MacroService,
         notifications as unknown as NotificationService,
         queue as unknown as QueueService,
+        new PowerService({ configured: () => false } as unknown as HaApiService),
     );
     svc.sleep = async () => undefined;
 });

@@ -139,8 +139,11 @@ function Toggles({ printerId }: { printerId: string }) {
     const patchLiveState = printersStore.actions.patchLiveState;
     const qc = useQueryClient();
     const printer = usePrinter(printerId);
-    const powerConfigured = Boolean(printer?.settings.powerOnUrl || printer?.settings.powerOffUrl);
-    const power = useQuery(powerStatusQuery(printerId, powerConfigured));
+    const powerSet = Boolean(
+        printer?.settings.plugSwitch || printer?.settings.powerOnUrl || printer?.settings.powerOffUrl,
+    );
+    const power = useQuery(powerStatusQuery(printerId, powerSet));
+    const powerConfigured = powerSet && power.data?.configured !== false;
     const powerMut = useMutation({
         mutationFn: (action: 'on' | 'off') => api.printers.power(printerId, action),
         onSuccess: (r) => {

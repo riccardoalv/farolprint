@@ -130,7 +130,7 @@ export function CameraCard({ printerId, className }: { printerId: string; classN
                     )}
                 </div>
             </div>
-            <div className="relative aspect-video max-h-[70svh] w-full flex-1 bg-black/40">
+            <div className="relative aspect-video max-h-[70svh] w-full flex-1 bg-muted">
                 {src && (
                     <img
                         src={src}

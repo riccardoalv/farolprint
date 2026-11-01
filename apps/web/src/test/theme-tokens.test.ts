@@ -21,6 +21,14 @@ describe('colour tokens', () => {
         expect(offenders(/text-primary(?![-\w])/)).toEqual([]);
     });
 
+    it('never writes the deep brand colour on the dark primary-foreground fill', () => {
+        expect(
+            offenders(
+                /bg-primary-foreground(?!\/)[^'"\n]*text-primary-strong|text-primary-strong[^'"\n]*bg-primary-foreground(?!\/)/,
+            ),
+        ).toEqual([]);
+    });
+
     it('never uses the old emerald palette', () => {
         expect(offenders(/emerald-\d|#10b981/i)).toEqual([]);
     });

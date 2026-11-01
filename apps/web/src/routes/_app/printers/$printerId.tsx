@@ -75,8 +75,8 @@ function PrinterDashboard() {
                 </p>
             </div>
             <Button asChild variant="secondary" className="h-9 rounded-full">
-                <Link to="/printers/$printerId/settings" params={{ printerId }}>
-                    <Settings /> {m.common_settings()}
+                <Link to="/printers/$printerId/settings" params={{ printerId }} aria-label={m.common_settings()}>
+                    <Settings /> <span className="hidden sm:inline">{m.common_settings()}</span>
                 </Link>
             </Button>
         </header>
@@ -124,7 +124,6 @@ function PrinterDashboard() {
 
     return (
         <div className="space-y-4">
-            <GettingStarted />
             {!canOperate && (
                 <div className="rounded-3xl bg-secondary px-5 py-3 text-sm text-muted-foreground">
                     {m.role_viewer_hint()}
@@ -154,6 +153,7 @@ function PrinterDashboard() {
                     <MaintenanceCard printerId={printerId} />
                 </aside>
             </fieldset>
+            <GettingStarted />
         </div>
     );
 }

@@ -20,6 +20,7 @@ import type {
     FileObjectsDto,
     GcodeFileDto,
     HaEnergySensorDto,
+    HaSwitchDto,
     HaTestResultDto,
     HomeAssistantTestInput,
     ImportProfilesResult,
@@ -263,6 +264,7 @@ export const api = {
     homeAssistant: {
         test: (input: HomeAssistantTestInput) => request<HaTestResultDto>('/api/v1/home-assistant/test', json(input)),
         energySensors: () => request<HaEnergySensorDto[]>('/api/v1/home-assistant/energy-sensors'),
+        switches: () => request<HaSwitchDto[]>('/api/v1/home-assistant/switches'),
     },
     automations: {
         list: () => request<AutomationRuleDto[]>('/api/v1/automations'),

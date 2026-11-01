@@ -1,5 +1,6 @@
 import {
     type HaEnergySensorDto,
+    type HaSwitchDto,
     type HaTestResultDto,
     type HomeAssistantApiSettings,
     isEnergyUnit,
@@ -30,13 +31,28 @@ export class HaApiService {
         return Boolean(c.url && c.token);
     }
 
-    private async get<T>(path: string, c: HomeAssistantApiSettings = this.config()): Promise<T> {
+    private get<T>(path: string, c: HomeAssistantApiSettings = this.config()): Promise<T> {
+        return this.request<T>('GET', path, undefined, c);
+    }
+
+    private async request<T>(
+        method: 'GET' | 'POST',
+        path: string,
+        body?: unknown,
+        c: HomeAssistantApiSettings = this.config(),
+    ): Promise<T> {
         if (!c.url || !c.token) throw new Error(m.api_ha_not_configured());
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
         try {
             const res = await fetch(`${c.url.replace(/\/+$/, '')}${path}`, {
-                headers: { authorization: `Bearer ${c.token}`, accept: 'application/json' },
+                method,
+                headers: {
+                    authorization: `Bearer ${c.token}`,
+                    accept: 'application/json',
+                    ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+                },
+                ...(body === undefined ? {} : { body: JSON.stringify(body) }),
                 signal: ctrl.signal,
             });
             if (res.status === 401 || res.status === 403) throw new Error(m.api_ha_unauthorized());
@@ -76,8 +92,35 @@ export class HaApiService {
             .sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    async switches(): Promise<HaSwitchDto[]> {
+        const states = await this.get<HaState[]>('/api/states');
+        return states
+            .filter((s) => s.entity_id.startsWith('switch.'))
+            .map((s) => ({
+                entityId: s.entity_id,
+                name: s.attributes?.friendly_name || s.entity_id,
+                on: switchOn(s.state),
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    async switchState(entityId: string): Promise<boolean | null> {
+        const s = await this.get<HaState>(`/api/states/${encodeURIComponent(entityId)}`);
+        return switchOn(s.state);
+    }
+
+    async setSwitch(entityId: string, on: boolean): Promise<void> {
+        await this.request('POST', `/api/services/switch/${on ? 'turn_on' : 'turn_off'}`, { entity_id: entityId });
+    }
+
     async readKwh(entityId: string): Promise<number | null> {
         const s = await this.get<HaState>(`/api/states/${encodeURIComponent(entityId)}`);
         return toKwh(s.state, s.attributes?.unit_of_measurement);
     }
+}
+
+function switchOn(state: string): boolean | null {
+    if (state === 'on') return true;
+    if (state === 'off') return false;
+    return null;
 }

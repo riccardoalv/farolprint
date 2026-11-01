@@ -8,7 +8,7 @@ import { usePrinter } from '@/hooks/use-printers';
 import type { PrinterWithLive } from '@/lib/api';
 import { installI18n, m } from '@/lib/i18n';
 import { printersStore } from '@/stores/printers';
-import { renderWithProviders } from '@/test/render';
+import { renderWithProviders, testQueryClient } from '@/test/render';
 import { COSTS_KEYS, CostsCard } from './costs-card';
 import { DetectionCard } from './detection-card';
 import { DryPresetsCard } from './dry-presets-card';
@@ -329,6 +329,39 @@ describe('editing the new settings', () => {
             queueAutoStartDelaySec: 30,
             lightTrigger: false,
         });
+    });
+
+    it('shows the plug card only when Home Assistant is set up', async () => {
+        const printer = {
+            id: 'p1',
+            name: 'Kobra 4',
+            ip: '192.168.1.235',
+            httpPort: 7125,
+            deviceId: 'abcdef123456',
+            modeId: '20028',
+            username: 'user',
+            createdAt: '2026-10-20T00:00:00.000Z',
+            model: 'Anycubic Kobra 4',
+            settings: printerSettingsSchema.parse({}),
+            live: null,
+        } as unknown as PrinterWithLive;
+        const without = await renderWithProviders(
+            <PrinterSettingsForm printer={printer} onSaved={vi.fn()} onDeleted={vi.fn()} />,
+        );
+        expect(screen.queryByText(m.plug_title())).toBeNull();
+        expect(screen.queryByText('http://192.168.1.50/cm?cmnd=Power%20On')).toBeNull();
+        without.unmount();
+        const qc = testQueryClient();
+        qc.setQueryData(
+            ['settings'],
+            appSettingsSchema.parse({ homeAssistant: { url: 'http://ha.local:8123', token: 't' } }),
+        );
+        await renderWithProviders(<PrinterSettingsForm printer={printer} onSaved={vi.fn()} onDeleted={vi.fn()} />, {
+            queryClient: qc,
+        });
+        expect(screen.getByText(m.plug_title())).toBeTruthy();
+        expect(screen.getByRole('combobox', { name: m.plug_switch() })).toBeTruthy();
+        expect(screen.getByRole('combobox', { name: m.energy_sensor() })).toBeTruthy();
     });
 
     it('shows the save bar on a printer change and discards it', async () => {

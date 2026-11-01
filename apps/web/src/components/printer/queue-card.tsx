@@ -80,7 +80,7 @@ export function QueueCard({ printerId, className }: { printerId: string; classNa
             action={
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {items.length > 0 && (
-                        <span>{m.queue_total({ n: items.length, duration: formatDuration(total) })}</span>
+                        <span>{m.queue_total({ n: items.length, duration: formatDuration(total, { units: 2 }) })}</span>
                     )}
                     <IconButton
                         title={m.queue_maintenance()}
