@@ -458,6 +458,29 @@ describe('bed clear', () => {
         await new Promise((r) => setTimeout(r, 10));
         expect((await svc.status('p1')).awaitingBedClear).toBe(false);
     });
+
+    it('starts the next file right away from the light, without the configured wait', async () => {
+        const p1 = attach('p1', { lightTrigger: true, queueAutoStart: true, queueAutoStartDelaySec: 15 });
+        await db.client.printer.update({ where: { id: 'p1' }, data: { maintenance: true } });
+        await svc.add('f1', [], false, {}, { printerId: 'p1', targetTags: [] }, false);
+        await db.client.printer.update({ where: { id: 'p1' }, data: { maintenance: false, awaitingBedClear: true } });
+        p1.emitter.emit('light_trigger');
+        await new Promise((r) => setTimeout(r, 30));
+        expect(printStoredFile).toHaveBeenCalledTimes(1);
+        expect((await svc.status('p1')).autoStartAt).toBeNull();
+    });
+
+    it('drops a pending countdown when the light starts the file', async () => {
+        const p1 = attach('p1', { lightTrigger: true, queueAutoStart: true, queueAutoStartDelaySec: 15 });
+        await db.client.printer.update({ where: { id: 'p1' }, data: { maintenance: true } });
+        await svc.add('f1', [], false, {}, { printerId: 'p1', targetTags: [] }, false);
+        await db.client.printer.update({ where: { id: 'p1' }, data: { maintenance: false, awaitingBedClear: true } });
+        expect((await svc.confirmBedClear('p1')).startsAt).not.toBeNull();
+        p1.emitter.emit('light_trigger');
+        await new Promise((r) => setTimeout(r, 30));
+        expect(printStoredFile).toHaveBeenCalledTimes(1);
+        expect((await svc.status('p1')).autoStartAt).toBeNull();
+    });
 });
 
 describe('filamentFit', () => {
