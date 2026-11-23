@@ -87,5 +87,3 @@ in one `print/update` (items 23, 37 and 40; reasons in [decisions.md](decisions.
 ## Later
 
 - A queue timeline: when each queued item is expected to start and end on each printer.
-- Energy straight from a plug's own API (Tasmota, Shelly) for people without Home Assistant; the Home Assistant
-  meter shipped in 0.15.
