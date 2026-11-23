@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.27.0](https://github.com/riccardoalv/farolprint/compare/v0.26.2...v0.27.0) (2026-11-23)
+
+
+### Features
+
+* **dev:** add a fake Kobra 4 for development without a printer ([#84](https://github.com/riccardoalv/farolprint/issues/84)) ([1435cfa](https://github.com/riccardoalv/farolprint/commit/1435cfaa518636e420006e9ed933947d78ae2bd5))
+* **moonraker:** expose the print thumbnail to Moonraker clients and Home Assistant ([#81](https://github.com/riccardoalv/farolprint/issues/81)) ([cd28b56](https://github.com/riccardoalv/farolprint/commit/cd28b56f5b2cb2db473c12c69143f58b26b0318c))
+* **web:** color the G-code preview by the filament of each tool ([#83](https://github.com/riccardoalv/farolprint/issues/83)) ([a8f1b9d](https://github.com/riccardoalv/farolprint/commit/a8f1b9de7cb09f9cc22ae5011a332c203290fdc7))
+
+
+### Bug Fixes
+
+* **bridge:** keep the pause reason when a settings acknowledgement arrives ([#85](https://github.com/riccardoalv/farolprint/issues/85)) ([78f1afc](https://github.com/riccardoalv/farolprint/commit/78f1afc55e25dad659d04dd8a33b950f6e606213))
+* **docker:** put the ignore file where the build reads it ([#80](https://github.com/riccardoalv/farolprint/issues/80)) ([e0861cb](https://github.com/riccardoalv/farolprint/commit/e0861cb1b7a08b161566a53707686d8a50bd0d46))
+
 ## [0.26.2](https://github.com/riccardoalv/farolprint/compare/v0.26.1...v0.26.2) (2026-11-23)
 
 
