@@ -165,13 +165,14 @@ describe('info features', () => {
 });
 
 describe('connecting', () => {
-    it('asks the printer for its lights once the session is open', async () => {
+    it('asks the printer for its lights and peripherals once the session is open', async () => {
         const h = bridge({
             pollIntervalSec: 60,
             alerts: { nozzleMaxC: 0, bedMaxC: 0, offlineMinutes: 0 },
             cameraAlwaysOn: false,
         });
         const queryLight = mock(() => undefined);
+        const queryPeripherals = mock(() => undefined);
         const client = {
             connected: true,
             connect: mock(async () => undefined),
@@ -179,6 +180,7 @@ describe('connecting', () => {
             queryInfo: mock(async () => null),
             queryMultiColorBox: mock(async () => null),
             queryLight,
+            queryPeripherals,
         };
         const internals = h.b as unknown as { client: typeof client; printerReachable: () => Promise<boolean> };
         internals.client = client;
@@ -187,6 +189,7 @@ describe('connecting', () => {
         for (let i = 0; i < 50 && !client.queryInfo.mock.calls.length; i++) await new Promise((r) => setTimeout(r, 5));
         expect(client.connect).toHaveBeenCalledTimes(1);
         expect(queryLight).toHaveBeenCalledTimes(1);
+        expect(queryPeripherals).toHaveBeenCalledTimes(1);
         expect(h.b.snapshot().connected).toBe(true);
     });
 });

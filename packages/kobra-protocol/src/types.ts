@@ -106,6 +106,16 @@ export interface KobraLightData extends KobraLight {
     lights?: KobraLight[];
 }
 
+export interface KobraPeripheralsData {
+    camera?: number | boolean;
+    udisk?: number | boolean;
+    multiColorBox?: number | boolean;
+    usb_path?: string;
+    mount_path?: string;
+    ret_code?: number;
+    [k: string]: unknown;
+}
+
 export interface KobraFanData {
     fan_speed_pct?: number | null;
     aux_fan_speed_pct?: number | null;

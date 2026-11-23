@@ -10,6 +10,7 @@ import {
     type KobraMessage,
     KobraMqttClient,
     type KobraMultiColorBoxData,
+    type KobraPeripheralsData,
     type KobraPrintData,
     type KobraSkipData,
     type PrintStartPayload,
@@ -38,6 +39,7 @@ import {
     type PrinterSettings,
     type PrintOption,
     readFeatures,
+    readPeripherals,
     type SpoolmanPricing,
     type SpoolUsageEntry,
     slotUsableForPrint,
@@ -228,6 +230,8 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
             storageTotalMb: 0,
             storageUsedMb: 0,
             features: null,
+            peripherals: null,
+            deviceName: null,
             updatedAt: Date.now(),
         };
         this.client = this.createClient();
@@ -448,6 +452,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
                     this.publish();
                     this.emitEvent('printer_online');
                     this.client.queryLight();
+                    this.client.queryPeripherals();
                 } catch (e) {
                     const err = mqttConnectionError(e);
                     this.s.connectionError = err;
@@ -562,6 +567,9 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
                 break;
             case 'multiColorBox/report':
                 this.onMultiColorBox(payload as KobraMessage<KobraMultiColorBoxData>);
+                break;
+            case 'peripherie/report':
+                this.onPeripherals(payload as KobraMessage<KobraPeripheralsData>);
                 break;
             case 'fan/report':
                 this.onFan(payload as KobraMessage<KobraFanData>);
@@ -937,6 +945,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
             this.camera.setUrl(d.urls.rtspUrl);
         }
         if (d.fan_speed_pct !== undefined) this.s.fanSpeed = Number(d.fan_speed_pct);
+        if (typeof d.printerName === 'string' && d.printerName) this.s.deviceName = d.printerName;
         this.logExtraFans(d);
         const features = readFeatures(d.features);
         if (features && d.features) {
@@ -1038,6 +1047,15 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
         if (text === this.loggedUpdated) return;
         this.loggedUpdated = text;
         this.log.log(`Print settings acknowledged by the printer (updated): ${text}`);
+    }
+
+    private onPeripherals(p: KobraMessage<KobraPeripheralsData>): void {
+        const peripherals = readPeripherals(p.data);
+        if (!peripherals) return;
+        const text = JSON.stringify(peripherals);
+        if (text !== JSON.stringify(this.s.peripherals)) this.log.log(`Peripherals reported by the printer: ${text}`);
+        this.s.peripherals = peripherals;
+        this.publish();
     }
 
     private logFeatures(features: Record<string, unknown>): void {
@@ -1395,6 +1413,12 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
         this.s.lightOn = on;
         this.s.lightBrightness = b;
         this.publish();
+    }
+
+    renameOnPrinter(name: string): void {
+        this.ensureConnected();
+        this.client.setPrinterName(name);
+        this.log.log(`Printer renamed on its screen: ${name}`);
     }
 
     setSpeedMode(mode: number): void {

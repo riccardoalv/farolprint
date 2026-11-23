@@ -7,7 +7,9 @@ import {
     amsSetSlotSchema,
     cancelPrintSchema,
     type DeletePrinterFilesInput,
+    type DeviceNameInput,
     deletePrinterFilesSchema,
+    deviceNameSchema,
     type FileObjectsDto,
     type MoveAxisInput,
     moveAxisSchema,
@@ -125,6 +127,12 @@ export class CoreController {
     @HttpCode(204)
     speed(@Param('id') id: string, @Body(new ZodPipe(setSpeedSchema)) body: SetSpeedInput) {
         this.run(() => this.bridge(id).setSpeedMode(body.mode));
+    }
+
+    @Post('device-name')
+    @HttpCode(204)
+    deviceName(@Param('id') id: string, @Body(new ZodPipe(deviceNameSchema)) body: DeviceNameInput) {
+        this.run(() => this.bridge(id).renameOnPrinter(body.name));
     }
 
     @Post('axis')

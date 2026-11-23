@@ -13,6 +13,7 @@ import type {
     CompleteMaintenanceInput,
     CreateUserInput,
     DetectionModelDto,
+    DeviceNameInput,
     FailureDetectionStatusDto,
     FailureReason,
     FarolPrintEvent,
@@ -150,6 +151,8 @@ export const api = {
         fan: (id: string, input: SetFanInput) => request<void>(`/api/v1/printers/${id}/fan`, json(input)),
         light: (id: string, input: SetLightInput) => request<void>(`/api/v1/printers/${id}/light`, json(input)),
         speed: (id: string, input: SetSpeedInput) => request<void>(`/api/v1/printers/${id}/speed`, json(input)),
+        deviceName: (id: string, input: DeviceNameInput) =>
+            request<void>(`/api/v1/printers/${id}/device-name`, json(input)),
         axis: (id: string, input: MoveAxisInput) => request<void>(`/api/v1/printers/${id}/axis`, json(input)),
         axisOff: (id: string) => request<void>(`/api/v1/printers/${id}/axis/off`, { method: 'POST' }),
         pause: (id: string) => request<void>(`/api/v1/printers/${id}/print/pause`, { method: 'POST' }),

@@ -61,6 +61,8 @@ public sources below. The decisions taken from it are in [decisions.md](decision
 | `fan/setSpeed` | `{fan_speed_pct}` | part fan |
 | `light/control` | `{type: 3, status, brightness}` | the camera light; brightness 100 to turn on, 0 to turn off ✔ |
 | `light/query` | — | once per connection, on the `web` topic like the official client, to know the light before it changes ✔ |
+| `peripherie/query` | — | once per connection: camera, USB drive and ACE plugged in ✔ |
+| `info/setPrinterName` | `{printerName}` (1–30 characters, as in the official dialog) | "Use this name on the printer" in the printer settings, on the `web` topic like the official client ✔ |
 | `axis/move` | `{axis, move_type, distance}` | jog and home. Axis 1 X, 2 Y, 3 Z, 4 XY, 5 XYZ; move type 0 minus, 1 plus, 2 home ✔ |
 | `axis/turnOff` | — | motors off |
 | `video/startCapture`, `video/stopCapture` | — | camera; on the Kobra 4 they drive the cloud push and the LAN stream flows anyway ✔ |
@@ -125,13 +127,14 @@ shows (`supportsPrintOption` in `packages/shared/src/features.ts`).
 | `multiColorBox/report` | boxes, slots (`status`, `type`, `color`, `rfid`, `sku`), `loaded_slot`, `feed_status`, `auto_feed`, drying |
 | `light/report` | the camera light (type 3) from a `query` answer (`lights[]`) or a `control` answer (the bare light); a light with no `status` is unknown, not off. Every message except a `query` answer counts as a tap for the bed clear trigger, whatever the lamp |
 | `fan/report` | `fan_speed_pct` (pushed as soon as it changes, unlike `info`) |
+| `peripherie/report` | `camera`, `udisk`, `multiColorBox` (0/1, pushed when something is plugged in or out); the camera card says when no camera is connected instead of starting the stream |
 | `file/report` | listings, deletions, thumbnails, objects and their SVG |
 | `skip/report` | skipped objects |
 | `buried/report` | storage size, file size, layers and estimate of the running file |
 
 Logged, not used yet: `aux_fan_speed_pct` and `box_fan_level` in `info` (when they change), the `updated` print report,
 and whether `print/query` brings a report back while printing. Ignored today: `status/report`, `video/report`,
-`axis/report` (beyond refusals), `peripherie`, `ota`, `event`, `extfilbox`, `aiSettings`, `calibration`, `properties`.
+`axis/report` (beyond refusals and the `query` answer), `ota`, `event`, `extfilbox`, `aiSettings`, `calibration`, `properties`.
 
 ### ACE slot and feed values ✔
 
@@ -191,6 +194,10 @@ under a minute each time so a probe could hold the single MQTT session.
 | `info` fields | `aux_fan_speed_pct`, `fan_speed_pct`, `features`, `ip`, `last_project`, `model`, `print_speed_mode`, `printerName`, `project`, `state`, `temp`, `urls`, `version` |
 | `print/query` while idle | no `print/report` within 12 s on the `slicer` or the `web` topic, only the acknowledgement; while printing: not checked yet ❓ |
 | `light/query` | answered on both topics within 60 ms, with one lamp: the camera light (type 3) |
+| `peripherie/query` | answered on both topics: `{camera: 1, udisk: 0, multiColorBox: 0, mount_path: "/data/timelapse", usb_path: "", ret_code: 0}` |
+| `axis/query` | answered with `{x: 0, y: 0, z: 0}` while idle, so a position cannot be told from "not homed" yet |
+| `status/query` | answered as `status/report` `workReport` with state `free` and no data |
+| `info/setPrinterName` | the same name sent back is acknowledged with an `info` report; the name stays "Anycubic Kobra 4" |
 | File list | `listLocal` on `/` returns at most 256 files, newest first, and ignores `page_num` and `page_size` (pages 1 to 4, sizes 100 and 1000, all gave the same 256); the root lists no folder, while `/test_model` (also `test_model`, `/test_model/`) lists 13 sample files; `fileDetails` answers for `test_model/<name>` and `/test_model/<name>` |
 | Camera | the HTTP-FLV stream on 18088 keeps flowing (about 40 KB/s) whatever `video/startCapture` and `stopCapture` do; they answer `initSuccess`, `joinSuccess`, `pushStarted` and `pushStopped`, the cloud push. A start while running, a stop and start at once, and stop, 1 s, start all work. Requests to 18088 do not turn the light on |
 
@@ -228,7 +235,11 @@ Status of every gap found by the survey; the ones already fixed are marked **fix
 | 23 | The printer's own AI detection | not planned: FarolPrint runs its own, and LAN cannot change the printer's settings |
 | 24 | Endless spool (backup slots in `ams_box_mapping`) | roadmap (ACE; only community sources) |
 | 25 | Aux and chamber fans | checked: the Kobra 4 reports `aux_fan_speed_pct` (0 when idle) and no chamber fan; changes are logged; the official client shows the controls for the S1 only, during a print, through `print/update` |
-| 26–34 | Axis position, rename, USB drive, peripherals, OTA progress, other light types, slice parameters, Kobra X spool rack, `event` reports | roadmap |
+| 26 | Axis position | checked: `axis/query` answers 0, 0, 0 while idle; not used until a print shows it moving |
+| 27 | Rename on the printer | fixed: from the printer settings |
+| 28 | USB drive files | roadmap |
+| 29 | Peripherals | fixed: queried on connect, kept in the live state, no camera shown as such |
+| 30–34 | OTA progress, other light types, slice parameters, Kobra X spool rack, `event` reports | roadmap |
 | 35 | Camera light during failure detection | fixed: on while FarolPrint's detection watches, a setting on by default |
 | 36 | The official client connects with the per-printer `devicecrt`/`devicepk` from `/ctrl`, not the bundled Slicer certificate | checked: the Kobra 4 accepts it, the Slicer one and none; the broker checks the password |
 | 37 | The official client publishes everything on the `web` topic; FarolPrint mostly uses `slicer` | not planned: it works |

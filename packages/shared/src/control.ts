@@ -13,6 +13,8 @@ export const setLightSchema = z.object({
     brightness: z.number().int().min(0).max(100).optional(),
 });
 export const setSpeedSchema = z.object({ mode: z.number().int().min(1).max(3) });
+export const DEVICE_NAME_MAX = 30;
+export const deviceNameSchema = z.object({ name: z.string().trim().min(1).max(DEVICE_NAME_MAX) });
 
 export const moveAxisSchema = z.object({
     axis: z.number().int().min(1).max(5),
@@ -71,6 +73,7 @@ export type SetTemperatureInput = z.infer<typeof setTemperatureSchema>;
 export type SetFanInput = z.infer<typeof setFanSchema>;
 export type SetLightInput = z.infer<typeof setLightSchema>;
 export type SetSpeedInput = z.infer<typeof setSpeedSchema>;
+export type DeviceNameInput = z.infer<typeof deviceNameSchema>;
 export type MoveAxisInput = z.infer<typeof moveAxisSchema>;
 export type AmsSetSlotInput = z.input<typeof amsSetSlotSchema>;
 export type AmsFeedInput = z.infer<typeof amsFeedSchema>;
