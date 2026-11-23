@@ -1399,7 +1399,8 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
 
     setTemperature(nozzle?: number, bed?: number): void {
         this.ensureConnected();
-        if (this.s.printState === 'printing') this.client.setPrintingTemperature(this.s.taskId, nozzle, bed);
+        const task = this.s.printState === 'printing' || this.s.printState === 'paused';
+        if (task) this.client.setPrintingTemperature(this.s.taskId, nozzle, bed);
         else this.client.setIdleTemperature(nozzle, bed);
         if (nozzle !== undefined) this.s.nozzleTarget = nozzle;
         if (bed !== undefined) this.s.bedTarget = bed;

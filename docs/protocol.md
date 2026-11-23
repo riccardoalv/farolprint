@@ -56,8 +56,8 @@ public sources below. The decisions taken from it are in [decisions.md](decision
 | `multiColorBox/getInfo` | — | the poll loop (ACE slots; an empty list means an external spool only) |
 | `print/start` | see below | every print |
 | `print/pause`, `print/resume`, `print/stop` | `{taskid}` | print controls |
-| `print/update` | `{taskid, settings:{print_speed_mode \| target_nozzle_temp \| target_hotbed_temp}}` | speed and temperatures while printing (on the `web` topic) |
-| `tempature/set` | `{type: 0 nozzle / 1 bed / 2 both, target_nozzle_temp, target_hotbed_temp}` | temperatures when idle |
+| `print/update` | `{taskid, settings:{print_speed_mode \| target_nozzle_temp \| target_hotbed_temp}}` | speed and temperatures while a print runs or is paused (on the `web` topic), like the official client |
+| `tempature/set` | `{type: 0 nozzle / 1 bed / 2 both, target_nozzle_temp, target_hotbed_temp}` | temperatures when idle; the Kobra 4 refused it in the middle of a print, around a filament jam pause (10301, "device busy") |
 | `fan/setSpeed` | `{fan_speed_pct}` | part fan |
 | `light/control` | `{type: 3, status, brightness}` | the camera light; brightness 100 to turn on, 0 to turn off ✔ |
 | `light/query` | — | once per connection, on the `web` topic like the official client, to know the light before it changes ✔ |
