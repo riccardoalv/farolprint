@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.26.0](https://github.com/riccardoalv/farolprint/compare/v0.25.1...v0.26.0) (2026-11-23)
+
+
+### Features
+
+* **ace:** show the slot status, remaining filament and drying fault ([#71](https://github.com/riccardoalv/farolprint/issues/71)) ([1eb5deb](https://github.com/riccardoalv/farolprint/commit/1eb5debac294a0d2bda1e50817187734a2e75e84))
+* **printer:** read the peripherals and rename the printer on its screen ([#74](https://github.com/riccardoalv/farolprint/issues/74)) ([fc87912](https://github.com/riccardoalv/farolprint/commit/fc8791260ded9c3f966d75b0a7c12e7e94dfdbba))
+* **queue:** show when each queued item should start and end ([#75](https://github.com/riccardoalv/farolprint/issues/75)) ([e12e4f3](https://github.com/riccardoalv/farolprint/commit/e12e4f3d5ea5fe6a984bf278c9b88e68b3a94322))
+
+
+### Bug Fixes
+
+* **bridge:** reconnect on its own after the printer comes back ([#72](https://github.com/riccardoalv/farolprint/issues/72)) ([7ca8d73](https://github.com/riccardoalv/farolprint/commit/7ca8d73b10a7471c6aedfa8413f08b4f0f0e32d8))
+
 ## [0.25.1](https://github.com/riccardoalv/farolprint/compare/v0.25.0...v0.25.1) (2026-11-23)
 
 
