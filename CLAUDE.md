@@ -93,8 +93,10 @@ printer's LAN protocol (what FarolPrint uses, what Anycubic's own client does di
   trigger (3 light reports from the printer screen within 20 s, `light_trigger` bridge event). With `queueAutoStart`,
   the next file starts `queueAutoStartDelaySec` after a dashboard confirmation (right away from the light
   trigger), or after a finished print when the confirmation is off; `GET printers/:id/queue/status` returns the countdown (`autoStartAt`) and
-  `DELETE printers/:id/queue/auto-start` cancels it. `printer.maintenance` keeps a printer out. Items store the print dialog options
-  (`queue_item.options`) and start with them. Scheduled prints (`schedule/`) fire a stored file at `startAt` and fall
+  `DELETE printers/:id/queue/auto-start` cancels it. `printer.maintenance` keeps a printer out. Listing the queue also
+  projects each item (`eta`, from `queueTimeline` in `packages/shared/src/queue-timeline.ts`): the printer that frees
+  up first, its expected start and end, or the step it waits for (`bed_clear`, `manual`) instead of a time. Items
+  store the print dialog options (`queue_item.options`) and start with them. Scheduled prints (`schedule/`) fire a stored file at `startAt` and fall
   back to the front of the queue when the printer is busy. Maintenance tasks (`maintenance/`) are due by print
   hours, jobs or days since the last completion and notify once (`maintenance_due`).
 - Costs: `stats/job-cost.ts` prices a job from the spool (or default) filament price plus `settings.costs` (energy

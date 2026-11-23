@@ -16,6 +16,7 @@ export * from './printer';
 export * from './printer-errors';
 export * from './printer-specs';
 export * from './queue';
+export * from './queue-timeline';
 export * from './schedule';
 export * from './settings';
 export * from './spools';

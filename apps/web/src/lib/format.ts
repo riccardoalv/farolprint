@@ -46,6 +46,13 @@ export function formatClock(value: string | number | Date): string {
     return dayjs(value).format('LT');
 }
 
+export function formatEta(value: string | number | Date, now: string | number | Date = Date.now()): string {
+    const at = dayjs(value);
+    const days = Math.abs(at.startOf('day').diff(dayjs(now).startOf('day'), 'day'));
+    if (days === 0) return at.format('LT');
+    return at.format(days < 7 ? 'ddd LT' : 'L LT');
+}
+
 export function greeting(now = new Date()): string {
     const h = now.getHours();
     if (h < 6) return m.greeting_night();

@@ -1,5 +1,6 @@
 import type { CompatReason, QueueItemDto, QueueWaitReason } from '@farolprint/shared';
-import { ArrowDown, ArrowUp, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Clock, X } from 'lucide-react';
+import { etaText } from '@/components/queue/queue-eta';
 import type { PrinterWithLive } from '@/lib/api';
 import { formatDuration } from '@/lib/format';
 import { m } from '@/lib/i18n';
@@ -82,6 +83,12 @@ export function QueueItemRow({
                         </span>
                     )}
                 </div>
+                {item.eta && (
+                    <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="size-3 shrink-0" />
+                        <span className="min-w-0 truncate">{etaText(item.eta, printers)}</span>
+                    </div>
+                )}
             </div>
             <div className="flex gap-1">
                 <Small onClick={onUp} disabled={first} title={m.queue_move_up()}>

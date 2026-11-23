@@ -61,6 +61,7 @@ const item: QueueItemDto = {
     createdAt: '2026-10-01T00:00:00.000Z',
     waiting: 'bed_clear',
     candidates: ['p1'],
+    eta: null,
 };
 
 const job: PrintJobDto = {

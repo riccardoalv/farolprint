@@ -245,6 +245,19 @@ Bambu tools so people migrating from them find things where they expect. The pha
   order: each item spends from the spools of the printer it would go to, so the second of two prints that together
   need more than a spool holds shows "filament". An item held for filament is notified once (under the "Queue"
   notification switch) instead of being started.
+- **The queue timeline is a projection, not a plan** (November 2026). Each queued item shows the printer it should go
+  to and when it should start and end there, worked out when the queue is listed from what FarolPrint already knows:
+  the remaining time the printer reports, a running auto-start countdown, the wait between prints and each file's
+  estimated time. Items are handed out in queue order to the printer that frees up first among those that can take
+  them (target, model, nozzle, build volume, loaded filament), as the dispatch would; on a tie the printer that starts
+  by itself wins, then the first printer. A start that needs someone (a bed to clear with the confirmation on, a start
+  by hand with auto-start off) shows that step instead of a time, and so does every later item on that printer: the
+  dashboard never guesses when someone will act. A paused print, a print without a remaining time or a file without
+  an estimate leaves what follows on that printer without times; a printer offline or in maintenance gets nothing.
+  Only the choice between printers assumes each of those steps happens as soon as it can, and the projection assumes
+  every print finishes (a cancelled or failed one always waits for its bed). It never changes what the queue starts.
+  The "printer it would go to" of the waiting reason and of the filament simulation is now the printer the timeline
+  picks; before, it was the first compatible printer in the list, even when another one was free.
 - **A cleared bed is rated good or bad** (maintainer's decision). "Good" starts the next file when auto-start is on.
   "Bad" marks the last print as failed with the reason "rejected quality" and puts its file back at the front of the
   queue for the same printer, so the reprint comes before anything else. The light trigger counts as "good".
@@ -410,4 +423,7 @@ Bambu tools so people migrating from them find things where they expect. The pha
 - A Kobra MQTT simulator that replays captured messages, so the whole bridge can be tested in CI without a printer.
 - The external spool is tracked under slot key `0`, the same as ACE slot 1, so a printer with an ACE cannot track both;
   a separate key needs testing on a printer with an ACE.
+- Whether the queue timeline should show the earliest time of a step that needs someone ("after the bed is cleared,
+  not before ~15:05"). It shows none today, so with the bed-clear confirmation on (the default) only the item a
+  running countdown is about to start gets a clock time.
 

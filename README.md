@@ -29,9 +29,9 @@ by IP, then use it from **OrcaSlicer**, a **web dashboard** or any Moonraker cli
   reason), object skip
 - **Print from anywhere**: web dashboard, OrcaSlicer (upload + print), scheduled starts
 - **One queue for every printer**: items target a printer, a tag or any compatible printer (model, nozzle, build
-  volume and material; the colour is a hint), say why they wait, and are checked against the loaded filament; a
-  cleared bed is rated good or bad, a printer can be put in maintenance, and an opt-in light trigger confirms the bed
-  from the printer
+  volume and material; the colour is a hint), say why they wait and when they should start and end, and are checked
+  against the loaded filament; a cleared bed is rated good or bad, a printer can be put in maintenance, and an opt-in
+  light trigger confirms the bed from the printer
 - **GCode library**: thumbnails, estimated time, filaments and the amount each colour needs, one library for every
   printer
 - **AMS / ACE**: slot profiles, feeding, auto-feed, drying with scheduled cycles

@@ -13,17 +13,20 @@ import {
     type PrinterTargetInfo,
     printerSpecs,
     type QueueCheckDto,
+    type QueueEta,
     type QueueItemDto,
     type QueuePrintOptions,
     type QueueStatusDto,
     type QueueTarget,
     type QueueWaitReason,
     queuePrintOptionsSchema,
+    queueTimeline,
     type StockFilament,
     slotUsableForPrint,
     staticReasons,
     stockReasons,
     TERMINAL_PRINT_STATES,
+    type TimelinePrinter,
 } from '@farolprint/shared';
 import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { PrinterBridge } from '../bridge/printer-bridge';
@@ -430,12 +433,49 @@ export class QueueService extends EventEmitter<{ bed_cleared: [printerId: string
         return this.prisma.client.queueItem.findMany({ orderBy: { position: 'asc' }, include: { file: true } });
     }
 
+    private freeToStart(printerId: string, live: PrinterLiveState): boolean {
+        return (
+            (live.kobraState === 'free' || TERMINAL_PRINT_STATES.has(live.kobraState)) &&
+            !this.recentlyStarted(printerId)
+        );
+    }
+
+    private readiness(p: Printer, live: PrinterLiveState): QueueWaitReason {
+        if (!this.freeToStart(p.id, live)) return 'busy';
+        return p.awaitingBedClear ? 'bed_clear' : 'manual';
+    }
+
+    private timelinePrinter(p: Printer, live: PrinterLiveState, now: number): TimelinePrinter | null {
+        const bridge = this.bridges.get(p.id);
+        if (!bridge || !live.connected || p.maintenance) return null;
+        const w = this.watches.get(p.id);
+        const settings = bridge.settings;
+        const armed = w?.armed && settings.queueAutoStart ? now + settings.queueAutoStartDelaySec * 1000 : null;
+        const paused = live.printState === 'paused';
+        return {
+            id: p.id,
+            state: this.freeToStart(p.id, live) ? 'idle' : paused ? 'paused' : 'printing',
+            remainSec: paused || live.printState === 'printing' ? live.remainTimeSec : 0,
+            awaitingBedClear: p.awaitingBedClear,
+            autoStartAt: w?.startAt ?? armed,
+            settings,
+        };
+    }
+
     async list(): Promise<QueueItemDto[]> {
         const [rows, printers] = await Promise.all([this.rows(), this.printers()]);
+        const now = Date.now();
         const infos = printers.map((p) => ({ p, info: this.targetInfo(p), live: this.live(p.id) }));
         const slots = new Map<string, Map<string, SlotFilament>>();
         for (const { p } of infos) slots.set(p.id, await this.slotFilaments(p.id));
         const ledgers = new Map<string, Map<string, number>>(infos.map(({ p }) => [p.id, new Map()]));
+        const timeline = queueTimeline(
+            infos.flatMap(({ p, live }) => {
+                const printer = live ? this.timelinePrinter(p, live, now) : null;
+                return printer ? [printer] : [];
+            }),
+            now,
+        );
         return rows.map((row) => {
             const target = { printerId: row.printerId, targetTags: parseTags(row.targetTags) };
             const candidates = infos.filter(
@@ -444,50 +484,39 @@ export class QueueService extends EventEmitter<{ bed_cleared: [printerId: string
             const used = this.usedFilaments(row);
             const options = parseQueueOptions(row.options);
             let waiting: QueueWaitReason = 'no_printer';
-            const rank: QueueWaitReason[] = [
-                'no_printer',
-                'offline',
-                'maintenance',
-                'busy',
-                'bed_clear',
-                'filament',
-                'manual',
-            ];
-            const better = (r: QueueWaitReason) => {
-                if (rank.indexOf(r) > rank.indexOf(waiting)) waiting = r;
-            };
+            const ready = new Map<string, { waiting: QueueWaitReason; spend: Map<string, number> }>();
             for (const { p, live } of candidates) {
-                if (!live?.connected) {
-                    better('offline');
+                const usable = live?.connected && !p.maintenance ? live : null;
+                const fit = usable
+                    ? filamentFit(
+                          used,
+                          options.filamentAssignments,
+                          slots.get(p.id) ?? new Map(),
+                          ledgers.get(p.id) as Map<string, number>,
+                      )
+                    : null;
+                if (usable && fit?.fit === 'ok') {
+                    ready.set(p.id, { waiting: this.readiness(p, usable), spend: fit.spend });
                     continue;
                 }
-                if (p.maintenance) {
-                    better('maintenance');
-                    continue;
-                }
-                const ledger = ledgers.get(p.id) as Map<string, number>;
-                const { fit, spend } = filamentFit(
-                    used,
-                    options.filamentAssignments,
-                    slots.get(p.id) ?? new Map(),
-                    ledger,
-                );
-                if (fit !== 'ok') {
-                    better('filament');
-                    continue;
-                }
-                const idle = live.kobraState === 'free' || TERMINAL_PRINT_STATES.has(live.kobraState);
-                better(!idle || this.recentlyStarted(p.id) ? 'busy' : p.awaitingBedClear ? 'bed_clear' : 'manual');
-                for (const [key, grams] of spend) {
-                    const start = ledger.get(key) ?? slots.get(p.id)?.get(key)?.remainingG ?? null;
+                const reason = blocker(p, live);
+                if (WAIT_RANK.indexOf(reason) > WAIT_RANK.indexOf(waiting)) waiting = reason;
+            }
+            const eta = timeline.place(row.file.estPrintTimeSec, [...ready.keys()]);
+            const chosen = eta ? ready.get(eta.printerId) : undefined;
+            if (eta && chosen) {
+                waiting = chosen.waiting;
+                const ledger = ledgers.get(eta.printerId) as Map<string, number>;
+                for (const [key, grams] of chosen.spend) {
+                    const start = ledger.get(key) ?? slots.get(eta.printerId)?.get(key)?.remainingG ?? null;
                     if (start !== null) ledger.set(key, start - grams);
                 }
-                break;
             }
             return toDto(
                 row,
                 waiting,
                 candidates.map(({ p }) => p.id),
+                eta,
             );
         });
     }
@@ -533,7 +562,7 @@ export class QueueService extends EventEmitter<{ bed_cleared: [printerId: string
             include: { file: true },
         });
         for (const id of this.bridges.keys()) void this.maybeDispatch(id);
-        return toDto(row, null, []);
+        return toDto(row, null, [], null);
     }
 
     async addByFilename(printerId: string, filename: string): Promise<QueueItemDto> {
@@ -601,7 +630,7 @@ export class QueueService extends EventEmitter<{ bed_cleared: [printerId: string
         });
         this.notifyHeld(bridge, held);
         if (!next) throw new NotFoundException(m.api_queue_empty());
-        const dto = toDto(next, null, [printerId]);
+        const dto = toDto(next, null, [printerId], null);
         this.startedAt.set(printerId, Date.now());
         try {
             await bridge.printStoredFile(dto.fileId, {
@@ -667,6 +696,13 @@ export function describeRefusal(printers: QueueCheckDto['printers']): string {
 
 const ENDED_STATES = new Set([...TERMINAL_PRINT_STATES, 'failed']);
 
+const WAIT_RANK: QueueWaitReason[] = ['no_printer', 'offline', 'maintenance', 'filament'];
+
+function blocker(p: Printer, live: PrinterLiveState | null): QueueWaitReason {
+    if (!live?.connected) return 'offline';
+    return p.maintenance ? 'maintenance' : 'filament';
+}
+
 function cancelTimer(w: Watch): void {
     if (w.timer) clearTimeout(w.timer);
     w.timer = null;
@@ -677,7 +713,7 @@ function startAtOf(w: Watch | undefined): string | null {
     return w?.startAt ? new Date(w.startAt).toISOString() : null;
 }
 
-function toDto(r: Row, waiting: QueueWaitReason | null, candidates: string[]): QueueItemDto {
+function toDto(r: Row, waiting: QueueWaitReason | null, candidates: string[], eta: QueueEta | null): QueueItemDto {
     let excluded: string[] = [];
     try {
         const v = JSON.parse(r.excludedObjects);
@@ -699,6 +735,7 @@ function toDto(r: Row, waiting: QueueWaitReason | null, candidates: string[]): Q
         createdAt: r.createdAt.toISOString(),
         waiting,
         candidates,
+        eta,
     };
 }
 

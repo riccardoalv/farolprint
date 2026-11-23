@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { materialFamily } from './filament';
 import { startPrintSchema } from './files';
 import { printerTagSchema } from './printer';
+import type { QueueEta } from './queue-timeline';
 
 export const QUEUE_WAIT_REASONS = [
     'no_printer',
@@ -28,6 +29,7 @@ export interface QueueItemDto {
     createdAt: string;
     waiting: QueueWaitReason | null;
     candidates: string[];
+    eta: QueueEta | null;
 }
 
 export const queuePrintOptionsSchema = startPrintSchema.omit({ fileId: true, excludedObjects: true });

@@ -22,6 +22,7 @@ const item: QueueItemDto = {
     createdAt: '2026-10-01T00:00:00.000Z',
     waiting: null,
     candidates: ['p1'],
+    eta: null,
 };
 
 describe('targetLabel', () => {
@@ -68,6 +69,19 @@ describe('QueueItemRow', () => {
     it('hides the wait badge when the item can start', () => {
         renderRow();
         for (const label of Object.values(WAIT_LABEL)) expect(screen.queryByText(label())).toBeNull();
+    });
+
+    it('shows when and where the item should print', () => {
+        renderRow({ eta: { printerId: 'p1', startAt: null, endAt: null, wait: 'bed_clear' } });
+        expect(screen.getByText(m.queue_eta_bed_clear({ printer: 'Kobra 4' }))).toBeTruthy();
+    });
+
+    it('shows no projection when no printer can take the item', () => {
+        renderRow({ waiting: 'no_printer' });
+        const printer = 'Kobra 4';
+        for (const text of [m.queue_eta_bed_clear, m.queue_eta_manual, m.queue_eta_unknown]) {
+            expect(screen.queryByText(text({ printer }))).toBeNull();
+        }
     });
 
     it('moves and removes the item', async () => {
