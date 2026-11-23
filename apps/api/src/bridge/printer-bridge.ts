@@ -65,6 +65,8 @@ import { CameraCache } from './camera';
 const MAX_SAMPLES = 120;
 const SAMPLE_INTERVAL_MS = 2000;
 const RECONNECT_WINDOW_MS = 30000;
+const RETRY_MIN_MS = 20_000;
+const RETRY_MAX_MS = 300_000;
 const PRINT_HOLD_MS = 60000;
 const SNAPSHOT_MAX_AGE_MS = 120000;
 const CAMERA_STALE_MS = 30000;
@@ -139,6 +141,8 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
     private running = false;
     private offline = true;
     private reconnectUntil = 0;
+    private retryAt = 0;
+    private retryDelayMs = 0;
     private loopWake: (() => void) | null = null;
     private loopDone: Promise<void> | null = null;
 
@@ -336,6 +340,28 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
 
     private openReconnectWindow(): void {
         this.reconnectUntil = Date.now() + RECONNECT_WINDOW_MS;
+        this.retryAt = 0;
+        this.retryDelayMs = 0;
+    }
+
+    private connectionAttemptDue(now: number): boolean {
+        if (this.reconnectUntil && now >= this.reconnectUntil) {
+            this.log.log('Reconnection window expired, retrying less often');
+            this.closeReconnectWindow();
+        }
+        return this.reconnectUntil > 0 || now >= this.retryAt;
+    }
+
+    private connectionFailed(now: number): void {
+        if (this.reconnectUntil) return;
+        this.retryDelayMs = Math.min(this.retryDelayMs ? this.retryDelayMs * 2 : RETRY_MIN_MS, RETRY_MAX_MS);
+        this.retryAt = now + this.retryDelayMs;
+        this.log.log(`Next connection attempt in ${Math.round(this.retryDelayMs / 1000)} s`);
+    }
+
+    private connectionSucceeded(): void {
+        this.retryAt = 0;
+        this.retryDelayMs = 0;
     }
 
     private closeReconnectWindow(): void {
@@ -398,11 +424,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
                 continue;
             }
             if (this.offline) {
-                if (Date.now() >= this.reconnectUntil) {
-                    if (this.reconnectUntil) {
-                        this.log.log('Reconnection window expired, waiting for a manual request');
-                        this.closeReconnectWindow();
-                    }
+                if (!this.connectionAttemptDue(Date.now())) {
                     this.checkAlerts();
                     await this.sleep(probeInterval);
                     continue;
@@ -415,6 +437,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
                 try {
                     this.log.log('Printer reachable — opening MQTT session…');
                     await this.client.connect();
+                    this.connectionSucceeded();
                     this.offline = false;
                     this.s.connected = true;
                     this.s.connectionError = null;
@@ -430,6 +453,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
                     this.s.connectionError = err;
                     this.publish();
                     this.log.warn(`Connection failed: ${err.detail ?? err.code}`);
+                    this.connectionFailed(Date.now());
                     await this.sleep(probeInterval);
                     continue;
                 }
