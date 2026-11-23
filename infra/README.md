@@ -5,9 +5,9 @@ Files:
 - `docker-compose.prod.yml` — runs the published image `ghcr.io/riccardoalv/farolprint` from GitHub Container Registry (recommended)
 - `docker-compose.yml` — same service, plus a `build` section to build from source (`infra/Dockerfile`, context = repo root)
 - `.env.example` — configuration template (copy to `.env`)
-- `Dockerfile` (+ `Dockerfile.dockerignore`) — built and pushed to Docker Hub by the release workflow on every `v*` tag
+- `Dockerfile` (+ `Dockerfile.dockerignore`, the ignore file Docker reads for this Dockerfile) — built and pushed to GitHub Container Registry on every push to `main` and on every release
 
-## Docker Hub image (no clone)
+## Published image (no clone)
 
 ```bash
 mkdir farolprint && cd farolprint

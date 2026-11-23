@@ -7,5 +7,13 @@ data
 .turbo
 **/.turbo
 .git
+.claude
 apps/api/src/generated
 apps/web/src/routeTree.gen.ts
+apps/web/src/paraglide
+packages/i18n/src/paraglide
+**/.env
+**/.env.local
+**/*.log
+**/.DS_Store
+.idea
