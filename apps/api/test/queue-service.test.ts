@@ -278,6 +278,85 @@ describe('waiting reasons', () => {
     });
 });
 
+describe('timeline', () => {
+    const onP1 = { printerId: 'p1', targetTags: [] };
+    const anyPrinter = { printerId: null, targetTags: [] };
+    const ms = (iso: string | null | undefined) => Date.parse(iso as string);
+
+    it('chains each item after the current print and the wait between prints', async () => {
+        const p1 = attach('p1', { queueAutoStart: true, queueBedClearConfirm: false, queueAutoStartDelaySec: 30 });
+        await p1.state('printing', { remainTimeSec: 1200 });
+        await svc.add('f1', [], false, {}, onP1, false);
+        await svc.add('f1', [], false, {}, onP1, false);
+        const [first, second] = await svc.list();
+        expect(first.eta).toMatchObject({ printerId: 'p1', wait: null });
+        expect(Math.abs(ms(first.eta?.startAt) - Date.now() - 1_230_000)).toBeLessThan(5000);
+        expect(ms(first.eta?.endAt) - ms(first.eta?.startAt)).toBe(600_000);
+        expect(ms(second.eta?.startAt) - ms(first.eta?.endAt)).toBe(30_000);
+        expect(ms(second.eta?.endAt) - ms(second.eta?.startAt)).toBe(600_000);
+        expect((await svc.listFor('p1'))[0].eta).toMatchObject({ printerId: 'p1', wait: null });
+    });
+
+    it('has no times after a paused print', async () => {
+        const p1 = attach('p1', { queueAutoStart: true, queueBedClearConfirm: false });
+        await p1.state('paused', { printState: 'paused', remainTimeSec: 600 });
+        await svc.add('f1', [], false, {}, onP1, false);
+        expect((await svc.list())[0].eta).toEqual({ printerId: 'p1', startAt: null, endAt: null, wait: null });
+    });
+
+    it('waits for a start by hand or for the bed to be cleared instead of a time', async () => {
+        const p1 = attach('p1');
+        await svc.add('f1', [], false, {}, onP1, false);
+        expect((await svc.list())[0].eta).toEqual({ printerId: 'p1', startAt: null, endAt: null, wait: 'manual' });
+        p1.settings.queueAutoStart = true;
+        await db.client.printer.update({ where: { id: 'p1' }, data: { awaitingBedClear: true } });
+        expect((await svc.list())[0].eta).toEqual({ printerId: 'p1', startAt: null, endAt: null, wait: 'bed_clear' });
+    });
+
+    it('starts at the countdown, also while a finished printer has not reported free yet', async () => {
+        const p1 = attach('p1', { queueBedClearConfirm: false, queueAutoStartDelaySec: 60 });
+        await p1.state('printing');
+        await svc.add('f1', [], false, {}, onP1, false);
+        await p1.state('finished');
+        expect((await svc.list())[0].eta?.wait).toBe('manual');
+        p1.settings.queueAutoStart = true;
+        const armed = (await svc.list())[0].eta;
+        expect(armed).toMatchObject({ printerId: 'p1', wait: null });
+        expect(Math.abs(ms(armed?.startAt) - Date.now() - 60_000)).toBeLessThan(5000);
+        await p1.state('free');
+        const status = await svc.status('p1');
+        expect((await svc.list())[0].eta?.startAt).toBe(status.autoStartAt);
+        svc.cancelAutoStart('p1');
+        expect((await svc.list())[0].eta?.wait).toBe('manual');
+    });
+
+    it('projects nothing without an online printer out of maintenance', async () => {
+        await svc.add('f1', [], false, {}, onP1, false);
+        expect((await svc.list())[0]).toMatchObject({ waiting: 'offline', eta: null });
+        attach('p1');
+        await db.client.printer.update({ where: { id: 'p1' }, data: { maintenance: true } });
+        expect((await svc.list())[0]).toMatchObject({ waiting: 'maintenance', eta: null });
+    });
+
+    it('says why an item waits and spends the filament on the printer it goes to', async () => {
+        const p1 = attach('p1');
+        attach('p2');
+        await p1.state('printing', { remainTimeSec: 3600 });
+        spools = [
+            { id: 7, remaining_weight: 500, filament: { id: 1, material: 'PETG', color_hex: '111111' } },
+            { id: 8, remaining_weight: 80, filament: { id: 1, material: 'PETG', color_hex: '111111' } },
+        ];
+        spoolmanMaps.set('p1', new Map([[0, 7]]));
+        spoolmanMaps.set('p2', new Map([[0, 8]]));
+        await svc.add('f1', [], false, {}, anyPrinter, false);
+        await svc.add('f1', [], false, {}, anyPrinter, false);
+        expect((await svc.list()).map((i) => [i.eta?.printerId, i.eta?.wait, i.waiting])).toEqual([
+            ['p2', 'manual', 'manual'],
+            ['p1', 'manual', 'busy'],
+        ]);
+    });
+});
+
 describe('dispatch', () => {
     it('starts the first item the printer can take, with its options', async () => {
         attach('p1');

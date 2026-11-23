@@ -5,12 +5,13 @@ import { toast } from 'sonner';
 import { EmptyState, IconButton, Panel } from '@/components/printer/panel';
 import { AutoStartCountdown } from '@/components/queue/auto-start-countdown';
 import { BedClearBanner } from '@/components/queue/bed-clear-banner';
+import { queueEnd } from '@/components/queue/queue-eta';
 import { moveInOrder, QueueItemRow } from '@/components/queue/queue-item-row';
 import { queueModeText } from '@/components/queue/queue-mode';
 import { Button } from '@/components/ui/button';
 import { useLiveState, usePrinter, usePrinters } from '@/hooks/use-printers';
 import { api } from '@/lib/api';
-import { formatDate, formatDuration } from '@/lib/format';
+import { formatDate, formatDuration, formatEta } from '@/lib/format';
 import { m } from '@/lib/i18n';
 import { allQueueQuery, queueQuery, queueStatusQuery, scheduleQuery } from '@/lib/queries';
 import { cn } from '@/lib/utils';
@@ -72,6 +73,7 @@ export function QueueCard({ printerId, className }: { printerId: string; classNa
         reorder.mutate(moveInOrder(order, items[index].id, neighbour.id));
     };
     const total = items.reduce((a, i) => a + i.estPrintTimeSec, 0);
+    const ends = queueEnd(items, printerId);
 
     return (
         <Panel
@@ -80,7 +82,10 @@ export function QueueCard({ printerId, className }: { printerId: string; classNa
             action={
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {items.length > 0 && (
-                        <span>{m.queue_total({ n: items.length, duration: formatDuration(total, { units: 2 }) })}</span>
+                        <span>
+                            {m.queue_total({ n: items.length, duration: formatDuration(total, { units: 2 }) })}
+                            {ends && ` · ${m.queue_ends({ time: formatEta(ends) })}`}
+                        </span>
                     )}
                     <IconButton
                         title={m.queue_maintenance()}

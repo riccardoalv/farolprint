@@ -2,6 +2,7 @@ import type { PrinterLiveState, QueueItemDto } from '@farolprint/shared';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatEta } from '@/lib/format';
 import { m } from '@/lib/i18n';
 import { renderWithProviders } from '@/test/render';
 import { QueueCard } from './queue-card';
@@ -21,6 +22,7 @@ const { item, other, queue, schedule, printer } = vi.hoisted(() => {
         createdAt: '2026-10-01T00:00:00.000Z',
         waiting: 'manual',
         candidates: ['p1'],
+        eta: null,
     };
     const other: QueueItemDto = { ...item, id: 'q9', printerId: null, filename: 'other.gcode', position: 2 };
     return {
@@ -113,6 +115,26 @@ describe('QueueCard', () => {
         expect(screen.getAllByText('· Kobra 4')).toHaveLength(2);
         expect(screen.getAllByText(m.queue_waiting_manual())).toHaveLength(2);
         expect(screen.queryByText(m.queue_bed_waiting())).toBeNull();
+    });
+
+    it('shows when the queue of the printer should end', async () => {
+        const startAt = new Date(Date.now() + 60_000).toISOString();
+        const endAt = new Date(Date.now() + 660_000).toISOString();
+        queue.status.mockResolvedValue(status());
+        queue.list.mockResolvedValue([{ ...item, eta: { printerId: 'p1', startAt, endAt, wait: null } }]);
+        await renderWithProviders(<QueueCard printerId="p1" />);
+        expect(await screen.findByText(new RegExp(m.queue_ends({ time: formatEta(endAt) })))).toBeTruthy();
+        expect(screen.getByText(new RegExp(formatEta(startAt)))).toBeTruthy();
+    });
+
+    it('gives no end when the last item of the printer has no time', async () => {
+        queue.status.mockResolvedValue(status());
+        queue.list.mockResolvedValue([
+            { ...item, eta: { printerId: 'p1', startAt: null, endAt: null, wait: 'manual' } },
+        ]);
+        await renderWithProviders(<QueueCard printerId="p1" />);
+        expect(await screen.findByText(m.queue_eta_manual({ printer: 'Kobra 4' }))).toBeTruthy();
+        expect(screen.queryByText(new RegExp(m.queue_ends({ time: '' })))).toBeNull();
     });
 
     it('moves an item within the single queue order', async () => {
