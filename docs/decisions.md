@@ -406,12 +406,15 @@ Bambu tools so people migrating from them find things where they expect. The pha
   are masked in the bridge and camera log lines and in the camera error shown in the dashboard, since logs get pasted
   into issues.
 - **Facts for the next print are logged first** (the same approach as `info.features`), and used once a print shows
-  them. Two prints on the maintainer's Kobra 4 (November 2026) showed that `print/query` brings a print report back
-  within 13 ms while printing, and that `updated` reports carry the print fields and the print settings, part fan
-  included, several times a minute and once more after a cancel. `updated` is therefore not a state: it no longer
-  makes a cancelled print look like it is running again (which had made detection light the camera after the cancel),
-  and the dashboard part fan follows it. Its log line comes once per shape instead of at every fan change. The extra
-  fans (`aux_fan_speed_pct`, `box_fan_level`) are still logged when they change; the aux fan stayed at 0.
+  them. Two prints on the maintainer's Kobra 4 (November 2026) showed that `updated` reports carry the print fields
+  and the print settings, part fan included, several times a minute and once more after a cancel. `updated` is
+  therefore not a state: it no longer makes a cancelled print look like it is running again (which had made detection
+  light the camera after the cancel), it never replaces the reason of a pause, and the dashboard part fan follows it.
+  Its log line comes once per shape instead of at every fan change. The extra fans (`aux_fan_speed_pct`,
+  `box_fan_level`) are still logged when they change; the aux fan stayed at 0. The "print/query while printing" line
+  (13 ms) measured the acknowledgement on `/response`, not a report: requests resolve with that acknowledgement
+  ([protocol.md](protocol.md), divergence 45), as the fake printer showed. Whether `print/query` brings a report back
+  while printing is still open.
 - **The printer says what is plugged in.** FarolPrint asks for `peripherie` once per connection and follows the
   reports the printer pushes when something is plugged in or out (camera, USB drive, ACE). When the printer reports no
   camera, the camera card says so instead of trying to start a stream that cannot come.
