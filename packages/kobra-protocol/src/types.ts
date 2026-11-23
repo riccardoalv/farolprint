@@ -53,6 +53,8 @@ export interface KobraPrintData {
         print_speed_mode?: number;
         target_nozzle_temp?: number;
         target_hotbed_temp?: number;
+        fan_speed_pct?: number;
+        z_comp?: number;
     };
     [k: string]: unknown;
 }

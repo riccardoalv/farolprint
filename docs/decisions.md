@@ -385,15 +385,19 @@ Bambu tools so people migrating from them find things where they expect. The pha
 - **The camera light is on while detection watches** (maintainer's decision, November 2026, following the official
   client, which lights the camera during its own detection and has a "low light" error, 11810). A setting in the
   failure detection card, on by default, turns the light on when detection starts watching a print and off when the
-  print ends, only if FarolPrint turned it on and it is still on. A light already on is left alone, a pause keeps it
-  on, and a failure that pauses or cancels the print leaves it on so the camera shows what happened.
+  print ends (or as soon as the printer is no longer printing or paused), only if FarolPrint turned it on and it is
+  still on. A light already on is left alone, a pause keeps it on, and a failure that pauses or cancels the print
+  leaves it on so the camera shows what happened. Turning detection or this setting off keeps the light alone.
 - **Printer tokens stay out of the logs.** The upload token (`gcode_upload?s=`) and the camera token (`/live/<token>`)
   are masked in the bridge and camera log lines and in the camera error shown in the dashboard, since logs get pasted
   into issues.
-- **Facts for the next print are logged first** (the same approach as `info.features`): whether `print/query` brings a
-  print report back while printing, what an `updated` report carries (`print_speed_pct`, `z_comp`) and the extra fans
-  (`aux_fan_speed_pct`, `box_fan_level`) when they change. Nothing uses them until a print on the maintainer's Kobra 4
-  shows what they hold.
+- **Facts for the next print are logged first** (the same approach as `info.features`), and used once a print shows
+  them. Two prints on the maintainer's Kobra 4 (November 2026) showed that `print/query` brings a print report back
+  within 13 ms while printing, and that `updated` reports carry the print fields and the print settings, part fan
+  included, several times a minute and once more after a cancel. `updated` is therefore not a state: it no longer
+  makes a cancelled print look like it is running again (which had made detection light the camera after the cancel),
+  and the dashboard part fan follows it. Its log line comes once per shape instead of at every fan change. The extra
+  fans (`aux_fan_speed_pct`, `box_fan_level`) are still logged when they change; the aux fan stayed at 0.
 - **The printer says what is plugged in.** FarolPrint asks for `peripherie` once per connection and follows the
   reports the printer pushes when something is plugged in or out (camera, USB drive, ACE). When the printer reports no
   camera, the camera card says so instead of trying to start a stream that cannot come.
