@@ -1,7 +1,8 @@
 import type { GcodeFileDto } from '@farolprint/shared';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import type { ParsedGcode, WorkerResponse } from '@/lib/gcode-parser.worker';
+import type { ParsedGcode } from '@/lib/gcode-parse';
+import type { WorkerResponse } from '@/lib/gcode-parser.worker';
 import { m } from '@/lib/i18n';
 
 export type ParsedGcodeStatus =

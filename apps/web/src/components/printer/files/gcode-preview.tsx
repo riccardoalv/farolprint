@@ -1,6 +1,6 @@
-import type { GcodeFileDto } from '@farolprint/shared';
+import { type GcodeFileDto, slotUsableForPrint } from '@farolprint/shared';
 import { Box, Crosshair, Move, RotateCcw } from 'lucide-react';
-import { type ComponentProps, lazy, Suspense, useEffect, useState } from 'react';
+import { type ComponentProps, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CostEstimateCard } from '@/components/printer/files/cost-estimate';
 import type { SceneMode } from '@/components/printer/files/gcode-scene';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { useCostEstimate } from '@/hooks/use-cost-estimate';
 import { useParsedGcode } from '@/hooks/use-parsed-gcode';
 import { usePrinter } from '@/hooks/use-printers';
-import type { ParsedGcode } from '@/lib/gcode-parser.worker';
+import { defaultAssignments, filamentPalette } from '@/lib/filament-assignments';
+import type { ParsedGcode } from '@/lib/gcode-parse';
 import { m } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,20 @@ export function GcodePreview({ printerId, file }: { printerId: string; file: Gco
     const printingThis = Boolean(
         live && live.filename === file.filename && (live.printState === 'printing' || live.printState === 'paused'),
     );
+    const slots = live?.amsSlots;
+    const filamentMode = live?.filamentMode;
+    const filament = useMemo(() => {
+        const usable = (slots ?? [])
+            .filter((s) => filamentMode && slotUsableForPrint(s, filamentMode))
+            .sort((a, b) => a.globalIndex - b.globalIndex);
+        const channels = file.filaments.map((f) => ({
+            paintIndex: f.slotIndex,
+            colorHex: f.colorHex,
+            material: f.material,
+            isUsed: f.isUsed,
+        }));
+        return filamentPalette(channels, usable, defaultAssignments(channels, usable));
+    }, [file.filaments, slots, filamentMode]);
     const data = status.kind === 'ready' ? status.data : null;
     const total = data?.layers.length ?? 0;
 
@@ -53,6 +68,7 @@ export function GcodePreview({ printerId, file }: { printerId: string; file: Gco
                                 mode={mode}
                                 pan={pan}
                                 resetSignal={resetSignal}
+                                filament={filament}
                             />
                         </Suspense>
                         <SceneOverlay
@@ -75,8 +91,21 @@ export function GcodePreview({ printerId, file }: { printerId: string; file: Gco
                 <LayerControls
                     data={data}
                     shown={shown}
-                    onChange={setLayer}
-                    follow={printingThis ? { checked: follow, onChange: setFollow } : null}
+                    onChange={(v) => {
+                        setFollow(false);
+                        setLayer(v);
+                    }}
+                    follow={
+                        printingThis
+                            ? {
+                                  checked: follow,
+                                  onChange: (v) => {
+                                      if (!v) setLayer(shown);
+                                      setFollow(v);
+                                  },
+                              }
+                            : null
+                    }
                 />
             )}
             <CostEstimateCard estimate={cost.estimate(file)} currency={cost.currency} />
@@ -164,7 +193,6 @@ function LayerControls({
                 min={1}
                 max={Math.max(1, total)}
                 step={1}
-                disabled={follow?.checked ?? false}
                 onValueChange={([v]) => onChange(v)}
                 className="flex-1"
             />

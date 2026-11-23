@@ -3,6 +3,7 @@ import { lazy, Suspense, useState } from 'react';
 import { SceneOverlay } from '@/components/printer/files/gcode-preview';
 import type { SceneMode } from '@/components/printer/files/gcode-scene';
 import { useParsedGcode } from '@/hooks/use-parsed-gcode';
+import type { FilamentColors } from '@/lib/filament-assignments';
 import { m } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -11,12 +12,12 @@ const GcodeScene = lazy(() => import('./gcode-scene').then((mod) => ({ default: 
 export function PrintPreview3D({
     printerId,
     file,
-    tint,
+    filament,
     className,
 }: {
     printerId: string;
     file: GcodeFileDto;
-    tint?: string;
+    filament?: FilamentColors;
     className?: string;
 }) {
     const status = useParsedGcode(printerId, file);
@@ -38,7 +39,7 @@ export function PrintPreview3D({
                             mode={mode}
                             pan={pan}
                             resetSignal={resetSignal}
-                            tint={tint}
+                            filament={filament}
                         />
                     </Suspense>
                     <SceneOverlay
