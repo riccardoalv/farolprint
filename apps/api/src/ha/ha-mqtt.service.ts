@@ -2,6 +2,7 @@ import type { HaMqttSettings, PrinterLiveState } from '@farolprint/shared';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import mqtt, { type MqttClient } from 'mqtt';
 import type { PrinterBridge } from '../bridge/printer-bridge';
+import { pngFromBase64 } from '../moonraker/thumbnails';
 import { SettingsService } from '../settings/settings.service';
 
 const PUBLISH_THROTTLE_MS = 2000;
@@ -16,6 +17,7 @@ interface Attached {
     announced: boolean;
     cameraTimer: NodeJS.Timeout | null;
     cameraSentAt: number;
+    thumbnailSent: string;
 }
 
 @Injectable()
@@ -70,6 +72,7 @@ export class HaMqttService implements OnModuleInit, OnModuleDestroy {
                 for (const a of this.attached.values()) {
                     a.announced = false;
                     a.cameraSentAt = 0;
+                    a.thumbnailSent = '';
                     this.announce(a.bridge);
                     this.publishState(a.bridge, a.bridge.snapshot());
                     this.publishCamera(a);
@@ -99,6 +102,7 @@ export class HaMqttService implements OnModuleInit, OnModuleDestroy {
             announced: false,
             cameraTimer: null,
             cameraSentAt: 0,
+            thumbnailSent: '',
         };
         const onState = (state: PrinterLiveState) => {
             entry.pending = state;
@@ -289,10 +293,21 @@ export class HaMqttService implements OnModuleInit, OnModuleDestroy {
             ['resume', 'button', { name: 'Resume', command_topic: this.topic(id, 'cmd/resume'), icon: 'mdi:play' }],
             ['cancel', 'button', { name: 'Cancel', command_topic: this.topic(id, 'cmd/cancel'), icon: 'mdi:stop' }],
             ['camera', 'camera', { name: 'Camera', topic: this.topic(id, 'camera'), image_encoding: 'b64' }],
+            [
+                'thumbnail',
+                'image',
+                {
+                    name: 'Thumbnail',
+                    image_topic: this.topic(id, 'thumbnail'),
+                    image_encoding: 'b64',
+                    content_type: 'image/png',
+                    icon: 'mdi:image',
+                },
+            ],
         ];
         for (const [key, component, extra] of sensors) {
             const payload = base(key, extra);
-            if (component === 'button' || component === 'camera')
+            if (component === 'button' || component === 'camera' || component === 'image')
                 delete (payload as { state_topic?: string }).state_topic;
             client.publish(
                 `${cfg.discoveryPrefix}/${component}/farolprint_${id}/${key}/config`,
@@ -329,6 +344,15 @@ export class HaMqttService implements OnModuleInit, OnModuleDestroy {
             errorCode: s.errorCode,
         };
         client.publish(this.topic(bridge.id, 'state'), JSON.stringify(payload), { retain: true });
+        this.publishThumbnail(bridge, s.thumbnail);
+    }
+
+    private publishThumbnail(bridge: PrinterBridge, thumbnail: string): void {
+        const entry = this.attached.get(bridge.id);
+        if (!entry || !this.client?.connected || thumbnail === entry.thumbnailSent) return;
+        if (!pngFromBase64(thumbnail)) return;
+        entry.thumbnailSent = thumbnail;
+        this.client.publish(this.topic(bridge.id, 'thumbnail'), thumbnail, { retain: true });
     }
 
     private publishCamera(entry: Attached): void {

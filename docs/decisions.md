@@ -293,6 +293,12 @@ Bambu tools so people migrating from them find things where they expect. The pha
   stream (a viewer, detection, a timelapse, "always on"). An MQTT camera is a still image refreshed every few
   seconds; live video in Home Assistant comes from its MJPEG camera integration on the printer's Moonraker port
   (`/api/camera/stream`, still image `/api/camera/snapshot`).
+- **The print thumbnail reaches Moonraker clients and Home Assistant** (maintainer's decision, November 2026,
+  brought over from Kobralink 1.0). The PNG the slicer embeds, the one the printer gives for its own files or the one
+  of the running print is listed in `server/files/metadata` (`thumbnails`, size and `relative_path`) and served at
+  `/server/files/gcodes/.thumbs/<file name in base64url>.png`, so any file name stays URL-safe. Home Assistant gets
+  it as an MQTT image entity, retained and sent once per change; it keeps the last print's image after the print
+  ends. Anything that is not a PNG is left out instead of being sent with the wrong type.
 - **Automations are rules, not scripts** (October 2026). A rule has one trigger (a print finished, a print cancelled
   or failed, a bed cleared, a spool running low, or a time of day), a target (one printer, the printers carrying all
   the given tags, or every printer) and up to ten actions run in order: a macro, the light, loading or unloading an

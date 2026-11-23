@@ -42,7 +42,8 @@ by IP, then use it from **OrcaSlicer**, a **web dashboard** or any Moonraker cli
 - **Automations**: rules on print end, failure, cleared bed, low filament or a time of day that run macros, switch
   the light or the smart plug, load or unload filament and notify
 - **Notifications**: webhook, Discord, Telegram, ntfy, each linking to the right screen · **Home Assistant** MQTT
-  discovery, and the real energy of each print read from the plug's meter in Home Assistant
+  discovery (sensors, controls, camera, print thumbnail), and the real energy of each print read from the plug's meter
+  in Home Assistant
 - **History & stats**: estimated cost before printing (file card, preview and print dialog), actual cost per print
   (filament and energy) on a history of cards with the preview of each print, comparison with the previous
   period, utilisation, mean time between failures, idle time and estimate accuracy per printer, failures by reason
@@ -122,6 +123,11 @@ With Home Assistant MQTT discovery on, the printer's camera entity shows the lat
 the camera runs (it never turns the camera on by itself). For live video, add Home Assistant's **MJPEG IP Camera**
 integration with `http://<bridge-ip>:7125/api/camera/stream` as the MJPEG URL and
 `http://<bridge-ip>:7125/api/camera/snapshot` as the still image URL (use the printer's own Moonraker port).
+
+The print thumbnail (the image embedded by the slicer) is a Home Assistant image entity through MQTT discovery, and
+Moonraker clients (Mainsail, Fluidd, OrcaSlicer, the HACS **Moonraker** integration) get it from the file metadata.
+The HACS Moonraker integration always fetches thumbnails on port `7125`: for the second printer onward, set its
+**Thumbnail Port** option to the printer's own port (`7126`, …), or it shows the first printer's thumbnail.
 
 By default the Moonraker ports are **unauthenticated** (trusted LAN), like Moonraker itself. The dashboard
 on `:7100` is protected by email + password.
