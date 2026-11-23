@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.1](https://github.com/riccardoalv/farolprint/compare/v0.26.0...v0.26.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **ha:** publish the camera frame to Home Assistant whatever the print state ([#76](https://github.com/riccardoalv/farolprint/issues/76)) ([5bb833c](https://github.com/riccardoalv/farolprint/commit/5bb833c7ac04ed10f60636a4981c3ce37dc5c729))
+
 ## [0.26.0](https://github.com/riccardoalv/farolprint/compare/v0.25.1...v0.26.0) (2026-11-23)
 
 
