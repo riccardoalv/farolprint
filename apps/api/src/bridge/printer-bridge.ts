@@ -451,6 +451,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
                     this.offlineAlerted = false;
                     this.publish();
                     this.emitEvent('printer_online');
+                    this.lastOwnLightAt = Date.now();
                     this.client.queryLight();
                     this.client.queryPeripherals();
                 } catch (e) {
@@ -636,13 +637,17 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
 
     private onPrint(p: KobraMessage<KobraPrintData>): void {
         const d = p.data ?? {};
-        const kobraState = p.state ?? '';
-        if (kobraState === 'updated') this.logUpdated(d);
+        const acknowledgement = p.state === 'updated';
+        if (acknowledgement) {
+            this.logUpdated(d);
+            if (this.s.printState !== 'printing' && this.s.printState !== 'paused') return;
+        }
+        const kobraState = acknowledgement ? this.s.kobraState : (p.state ?? '');
         if (d.supplies_usage !== undefined) {
             this.suppliesUsageMm = Number(d.supplies_usage) || 0;
             if (this.s.externalSpoolOnly) this.spoolmanAttribute(0, new Map());
         }
-        if (kobraState) this.applyKobraState(kobraState, 'printing');
+        if (kobraState && !acknowledgement) this.applyKobraState(kobraState, 'printing');
 
         if (kobraState === 'pause' || kobraState === 'paused') {
             if (p.msg) {
@@ -675,6 +680,8 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
         if (d.total_layers !== undefined) this.s.totalLayers = Number(d.total_layers);
         if (d.taskid !== undefined) this.s.taskId = String(d.taskid);
         if (d.settings?.print_speed_mode !== undefined) this.s.printSpeedMode = Number(d.settings.print_speed_mode);
+        const fan = Number(d.settings?.fan_speed_pct);
+        if (d.settings?.fan_speed_pct !== undefined && Number.isFinite(fan)) this.s.fanSpeed = fan;
         this.publish();
     }
 
@@ -1043,9 +1050,11 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
     }
 
     private logUpdated(d: KobraPrintData): void {
-        const text = JSON.stringify({ settings: d.settings ?? null, keys: Object.keys(d).sort() });
-        if (text === this.loggedUpdated) return;
-        this.loggedUpdated = text;
+        const keys = Object.keys(d).sort();
+        const shape = JSON.stringify({ settings: Object.keys(d.settings ?? {}).sort(), keys });
+        if (shape === this.loggedUpdated) return;
+        this.loggedUpdated = shape;
+        const text = JSON.stringify({ settings: d.settings ?? null, keys });
         this.log.log(`Print settings acknowledged by the printer (updated): ${text}`);
     }
 
@@ -1390,7 +1399,8 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
 
     setTemperature(nozzle?: number, bed?: number): void {
         this.ensureConnected();
-        if (this.s.printState === 'printing') this.client.setPrintingTemperature(this.s.taskId, nozzle, bed);
+        const task = this.s.printState === 'printing' || this.s.printState === 'paused';
+        if (task) this.client.setPrintingTemperature(this.s.taskId, nozzle, bed);
         else this.client.setIdleTemperature(nozzle, bed);
         if (nozzle !== undefined) this.s.nozzleTarget = nozzle;
         if (bed !== undefined) this.s.bedTarget = bed;

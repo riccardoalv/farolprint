@@ -56,8 +56,8 @@ public sources below. The decisions taken from it are in [decisions.md](decision
 | `multiColorBox/getInfo` | — | the poll loop (ACE slots; an empty list means an external spool only) |
 | `print/start` | see below | every print |
 | `print/pause`, `print/resume`, `print/stop` | `{taskid}` | print controls |
-| `print/update` | `{taskid, settings:{print_speed_mode \| target_nozzle_temp \| target_hotbed_temp}}` | speed and temperatures while printing (on the `web` topic) |
-| `tempature/set` | `{type: 0 nozzle / 1 bed / 2 both, target_nozzle_temp, target_hotbed_temp}` | temperatures when idle |
+| `print/update` | `{taskid, settings:{print_speed_mode \| target_nozzle_temp \| target_hotbed_temp}}` | speed and temperatures while a print runs or is paused (on the `web` topic), like the official client |
+| `tempature/set` | `{type: 0 nozzle / 1 bed / 2 both, target_nozzle_temp, target_hotbed_temp}` | temperatures when idle; the Kobra 4 refused it in the middle of a print, around a filament jam pause (10301, "device busy") |
 | `fan/setSpeed` | `{fan_speed_pct}` | part fan |
 | `light/control` | `{type: 3, status, brightness}` | the camera light; brightness 100 to turn on, 0 to turn off ✔ |
 | `light/query` | — | once per connection, on the `web` topic like the official client, to know the light before it changes ✔ |
@@ -122,19 +122,24 @@ shows (`supportsPrintOption` in `packages/shared/src/features.ts`).
 | Report | Fields used |
 |---|---|
 | `info/report` | `version`, `model`, `state`, `project.{state, filename, progress, print_time, remain_time, curr_layer, total_layers, taskid}`, `temp`, `urls`, `fan_speed_pct`, `print_speed_mode`, `features` (logged, kept in the live state, gates the calibration options) |
-| `print/report` | `state`, `code`/`msg` on a pause, `filename`, `progress`, `print_time` (minutes), `remain_time` (minutes), `curr_layer`, `total_layers`, `taskid`, `supplies_usage` (mm), `settings.print_speed_mode` |
+| `print/report` | `state`, `code`/`msg` on a pause, `filename`, `progress`, `print_time` (minutes), `remain_time` (minutes), `curr_layer`, `total_layers`, `taskid`, `supplies_usage` (mm), `settings.print_speed_mode`, `settings.fan_speed_pct` (the part fan, from `updated` reports) |
 | `tempature/report` | current and target nozzle and bed |
 | `multiColorBox/report` | boxes, slots (`status`, `type`, `color`, `rfid`, `sku`), `loaded_slot`, `feed_status`, `auto_feed`, drying |
-| `light/report` | the camera light (type 3) from a `query` answer (`lights[]`) or a `control` answer (the bare light); a light with no `status` is unknown, not off. Every message except a `query` answer counts as a tap for the bed clear trigger, whatever the lamp |
+| `light/report` | the camera light (type 3) from a `query` answer (`lights[]`) or a `control` answer (the bare light); a light with no `status` is unknown, not off. Every message except a `query` answer counts as a tap for the bed clear trigger, whatever the lamp, except in the 5 s after FarolPrint's own light command or its light query on connection (the Kobra 4 answers that query with two `control` messages) |
 | `fan/report` | `fan_speed_pct` (pushed as soon as it changes, unlike `info`) |
 | `peripherie/report` | `camera`, `udisk`, `multiColorBox` (0/1, pushed when something is plugged in or out); the camera card says when no camera is connected instead of starting the stream |
 | `file/report` | listings, deletions, thumbnails, objects and their SVG |
 | `skip/report` | skipped objects |
 | `buried/report` | storage size, file size, layers and estimate of the running file |
 
-Logged, not used yet: `aux_fan_speed_pct` and `box_fan_level` in `info` (when they change), the `updated` print report,
-and whether `print/query` brings a report back while printing. Ignored today: `status/report`, `video/report`,
-`axis/report` (beyond refusals and the `query` answer), `ota`, `event`, `extfilbox`, `aiSettings`, `calibration`, `properties`.
+An `updated` print report (Kobra 4, checked on two prints) carries the print fields plus `settings`
+(`fan_speed_pct`, `print_speed_mode`, `target_hotbed_temp`, `target_nozzle_temp`, `z_comp`). It comes every time the
+part fan or a target changes, so several times a minute, and once more right after a cancel, with the targets at 0.
+It is not a state: FarolPrint keeps the current one, reads the fields while a print runs and ignores it otherwise.
+
+Logged, not used yet: `aux_fan_speed_pct` and `box_fan_level` in `info` (when they change). Ignored today:
+`status/report`, `video/report`, `axis/report` (beyond refusals and the `query` answer), `ota`, `event`, `extfilbox`,
+`aiSettings`, `calibration`, `properties`.
 
 ### ACE slot and feed values ✔
 
@@ -158,7 +163,7 @@ and whether `print/query` brings a report back while printing. Ignored today: `s
 |---|---|
 | Preparation, official ✔ | `preheating`, `auto_leveling`, `vibrating`, `flow_calibrating`, `checking`, `drying`, `downloading`, `slicing`, `waiting` |
 | Preparation, newer firmware 🟡 | `hotbed_heating`, `hotbed_cooling_off`, `nozzle_heating`, `nozzle_cooling`, `nozzle_cooling_off`, `nozzle_purging`, `nozzle_wiping`, `frequency_sweeping`, `z_offset_calibrating`, `filament_cutting`, `extfilbox_filament_feeding`, `extfilbox_filament_unfeeding`, `ace_filament_feeding`, `ace_filament_unfeeding` |
-| Other | `printing`, `updated` (acknowledges `print/update`), `init`, `pausing`, `paused`, `pause`, `resuming`, `resumed`, `stopping`, `stoped` (sic), `finished`, `failed`, `canceled` |
+| Other | `printing`, `updated` (a settings change, not a state: see above), `init`, `pausing`, `paused`, `pause`, `resuming`, `resumed`, `stopping`, `stoped` (sic), `finished`, `failed`, `canceled` |
 
 All preparation states are listed once in `PREPARING_KOBRA_STATES` (`packages/shared/src/state.ts`). Some of them
 (filament cutting, purging, loading) also happen in the middle of a multi-colour print, so FarolPrint only treats them
@@ -227,14 +232,14 @@ Status of every gap found by the survey; the ones already fixed are marked **fix
 | 13 | Error codes shown raw, in the printer's language | fixed: 43 common codes translated, the printer message otherwise |
 | 14–16 | ACE slot statuses, slot `weight`/`edit_status`/`color_group`, drying fault 2 counted as drying | fixed, from the official client's values (no ACE to check them on) |
 | 17 | Files in printer subfolders (such as `/test_model/`) not listed | fixed: the root lists no folder on the Kobra 4, so the test models are listed apart; printing one sends `filepath` `/test_model/<name>`, to confirm with a print ❓ |
-| 18 | `updated` snapshot fields (`print_speed_pct`, `z_comp`) ignored | logged; used once a print shows them ❓ |
+| 18 | `updated` snapshot fields ignored | fixed: it carries `settings` (`fan_speed_pct`, `print_speed_mode`, targets, `z_comp`; no `print_speed_pct`); the part fan follows it, and it no longer counts as printing, which had brought a cancelled print back as running |
 | 19 | Flow calibration option | fixed: on by default, switch in the print dialog |
 | 20 | Options shown only when `info.features` reports them | fixed: leveling, vibration compensation and flow calibration |
 | 21 | Dry in the ACE before printing (`dry_mode: 2`) | roadmap: the official client only reacts to a dry-first start the slicer sends, whose payload is not public; needs a printer with an ACE |
 | 22 | The printer's own timelapse (needs a USB drive) | roadmap |
 | 23 | The printer's own AI detection | not planned: FarolPrint runs its own, and LAN cannot change the printer's settings |
 | 24 | Endless spool (backup slots in `ams_box_mapping`) | roadmap (ACE; only community sources) |
-| 25 | Aux and chamber fans | checked: the Kobra 4 reports `aux_fan_speed_pct` (0 when idle) and no chamber fan; changes are logged; the official client shows the controls for the S1 only, during a print, through `print/update` |
+| 25 | Aux and chamber fans | checked: the Kobra 4 reports `aux_fan_speed_pct`, 0 when idle and still 0 through a PETG print, and no chamber fan; changes are logged; the official client shows the controls for the S1 only, during a print, through `print/update` |
 | 26 | Axis position | checked: `axis/query` answers 0, 0, 0 while idle; not used until a print shows it moving |
 | 27 | Rename on the printer | fixed: from the printer settings |
 | 28 | USB drive files | roadmap |
@@ -244,7 +249,7 @@ Status of every gap found by the survey; the ones already fixed are marked **fix
 | 36 | The official client connects with the per-printer `devicecrt`/`devicepk` from `/ctrl`, not the bundled Slicer certificate | checked: the Kobra 4 accepts it, the Slicer one and none; the broker checks the password |
 | 37 | The official client publishes everything on the `web` topic; FarolPrint mostly uses `slicer` | not planned: it works |
 | 38 | The official client restarts the camera with stop, ~1 s, start | checked: not needed on the Kobra 4, whose LAN stream does not depend on start and stop |
-| 39 | `print/query` answer timing unclear | idle: no answer on the Kobra 4; while printing: logged once per print, to read after the next print ❓ |
+| 39 | `print/query` answer timing unclear | checked: idle, no answer on the Kobra 4; while printing, a print report within 13 ms (two prints) |
 | 40 | Nozzle and bed temperatures sent as two `print/update` | not planned: cosmetic |
 | 41 | Speed mode 4 (`speed_factor` 1.5) in the Moonraker mapping has no source | fixed: removed; any mode other than 1–3 reports 1.0 |
 | 42 | `print_time` in seconds on the S1 Max (not a supported model); Kobra X `ams_index` with an ACE unverified | to test: needs a Kobra X with an ACE ❓ |

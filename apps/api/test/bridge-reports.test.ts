@@ -192,4 +192,37 @@ describe('connecting', () => {
         expect(queryPeripherals).toHaveBeenCalledTimes(1);
         expect(h.b.snapshot().connected).toBe(true);
     });
+
+    it('does not count the light reports that follow the connection as taps on the screen', async () => {
+        const h = bridge({
+            pollIntervalSec: 60,
+            alerts: { nozzleMaxC: 0, bedMaxC: 0, offlineMinutes: 0 },
+            cameraAlwaysOn: false,
+        });
+        const client = {
+            connected: true,
+            connect: mock(async () => undefined),
+            disconnect: mock(async () => undefined),
+            queryInfo: mock(async () => null),
+            queryMultiColorBox: mock(async () => null),
+            queryLight: mock(() => undefined),
+            queryPeripherals: mock(() => undefined),
+        };
+        const internals = h.b as unknown as { client: typeof client; printerReachable: () => Promise<boolean> };
+        internals.client = client;
+        internals.printerReachable = async () => true;
+        h.b.start();
+        for (let i = 0; i < 50 && !client.queryInfo.mock.calls.length; i++) await new Promise((r) => setTimeout(r, 5));
+        const light = (status: number) =>
+            h.report('light/report', {
+                action: 'control',
+                data: { type: 3, status, brightness: status ? 100 : 0 },
+            });
+        light(0);
+        light(1);
+        light(0);
+        expect(h.triggers()).toBe(0);
+        expect(h.log.mock.calls.some(([m]) => m.startsWith('Light switched on the printer screen'))).toBe(false);
+        expect(h.b.snapshot().lightOn).toBe(false);
+    });
 });
