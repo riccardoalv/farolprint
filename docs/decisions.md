@@ -52,6 +52,11 @@ reasons behind them.
   whole server stopped. The MQTT client now only re-emits socket errors when something listens, and the API ignores,
   with a warning, a network error (`ECONNRESET`, `EPIPE`, `ETIMEDOUT`…) that escapes every handler; any other uncaught
   error still stops the process as before.
+- **FarolPrint reconnects on its own** (maintainer's decision, November 2026). It used to try for 30 s after losing
+  the printer, then wait for someone to press Reconnect, so a printer switched off and on again stayed offline in the
+  dashboard. It now keeps probing the printer and, once it answers, opens the session again: at every probe during the
+  first 30 s, then after 20 s, 40 s and so on up to five minutes between failed attempts. A manual Disconnect still
+  keeps it offline until Connect.
 - **A file is uploaded to the printer once.** With the "Dialog after upload" setting, an OrcaSlicer upload pushes the
   file to the printer and opens the dialog in the dashboard; confirming the dialog reuses that upload (same name, MD5
   and size as the last one) instead of sending the file again, so the print starts right away. The upload is forgotten
