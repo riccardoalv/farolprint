@@ -1,4 +1,5 @@
 import {
+    DEVICE_NAME_MAX,
     type PrinterProfile,
     type PrinterSettingsFormValues,
     printerSettingsFormSchema,
@@ -184,6 +185,7 @@ export function PrinterSettingsForm({
                                     className="rounded-full px-4"
                                 />
                                 <FieldError meta={field.state.meta} />
+                                <DeviceNameRow printer={printer} name={field.state.value} />
                             </div>
                         )}
                     </form.Field>
@@ -615,6 +617,35 @@ function VendorPicker({ value, onChange }: { value: string[]; onChange: (v: stri
                 >
                     {m.settings_show_all()}
                 </button>
+            )}
+        </div>
+    );
+}
+
+export function DeviceNameRow({ printer, name }: { printer: PrinterWithLive; name: string }) {
+    const live = printer.live;
+    const wanted = name.trim();
+    const rename = useMutation({
+        mutationFn: () => api.control.deviceName(printer.id, { name: wanted }),
+        onSuccess: () => toast.success(m.settings_device_name_sent({ name: wanted })),
+        onError: (e) => toast.error(e.message),
+    });
+    if (!live?.deviceName) return null;
+    const usable = wanted.length > 0 && wanted.length <= DEVICE_NAME_MAX && wanted !== live.deviceName;
+    return (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>{m.settings_device_name({ name: live.deviceName })}</span>
+            {usable && (
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-full"
+                    disabled={!live.connected || rename.isPending}
+                    onClick={() => rename.mutate()}
+                >
+                    {m.settings_device_name_apply()}
+                </Button>
             )}
         </div>
     );

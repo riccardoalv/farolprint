@@ -80,11 +80,14 @@ Follow-up of the protocol survey of November 2026; the numbers refer to the dive
    the extra fans, the `updated` report and the `print/query` answer logged for the next print (items 18, 25, 39).
 7. **ACE details (done)**: slot statuses, the remaining percentage, RFID or manual, the colours of a multicolour spool
    and the drying fault, from the official client's values (items 14–16).
-8. **Later**: dry before print and endless spool on the ACE, the `updated` snapshot fields (`print_speed_pct`, `z_comp`), the printer's own timelapse on its USB
-   drive, the auxiliary fan (`aux_fan_speed_pct`, reported by the Kobra 4, which has no chamber fan), other light
-   types, axis position, rename on the printer, USB drive, peripherals, firmware update progress, slice parameters, the
-   Kobra X spool rack and `event` reports, the Kobra X camera light that any request to port 18088 turns on (items 18,
-   21, 22, 24–34, 43).
+8. **Peripherals and the name on the printer (done)**: what the printer has plugged in (camera, USB drive, ACE),
+   read on connect, with "No camera is connected" on the camera card; renaming the printer on its own screen from
+   the printer settings; `axis/query` checked (items 26, 27, 29).
+9. **Later**: dry before print and endless spool on the ACE, the `updated` snapshot fields (`print_speed_pct`,
+   `z_comp`), the printer's own timelapse on its USB drive, the auxiliary fan (`aux_fan_speed_pct`, reported by the
+   Kobra 4, which has no chamber fan), other light types, the axis position while printing, the USB drive files,
+   firmware update progress, slice parameters, the Kobra X spool rack and `event` reports, the Kobra X camera light
+   that any request to port 18088 turns on (items 18, 21, 22, 24, 25, 26, 28, 30–34, 43).
 
 Not planned: the printer's own AI detection, the `web` topic for every command, and sending nozzle and bed temperatures
 in one `print/update` (items 23, 37 and 40; reasons in [decisions.md](decisions.md#printer-protocol)).

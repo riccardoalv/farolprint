@@ -6,6 +6,7 @@ import {
     KOBRA_TO_KLIPPER_STATE,
     PRE_PRINT_STATES,
     PREPARING_KOBRA_STATES,
+    readPeripherals,
     TERMINAL_PRINT_STATES,
 } from '../src/state';
 
@@ -89,5 +90,27 @@ describe('preparation states reported by the printer', () => {
 
     it('never overlap with the terminal states', () => {
         for (const kobraState of PREPARING_KOBRA_STATES) expect(TERMINAL_PRINT_STATES.has(kobraState)).toBe(false);
+    });
+});
+
+describe('readPeripherals', () => {
+    it('reads what the Kobra 4 reports', () => {
+        expect(
+            readPeripherals({ camera: 1, mount_path: '/data/timelapse', multiColorBox: 0, ret_code: 0, udisk: 0 }),
+        ).toEqual({ camera: true, usbDrive: false, ace: false });
+    });
+
+    it('accepts booleans', () => {
+        expect(readPeripherals({ camera: false, udisk: true, multiColorBox: true })).toEqual({
+            camera: false,
+            usbDrive: true,
+            ace: true,
+        });
+    });
+
+    it('says nothing without a peripheral field', () => {
+        expect(readPeripherals({ ret_code: 0 })).toBeNull();
+        expect(readPeripherals(null)).toBeNull();
+        expect(readPeripherals('camera')).toBeNull();
     });
 });

@@ -374,6 +374,13 @@ Bambu tools so people migrating from them find things where they expect. The pha
   print report back while printing, what an `updated` report carries (`print_speed_pct`, `z_comp`) and the extra fans
   (`aux_fan_speed_pct`, `box_fan_level`) when they change. Nothing uses them until a print on the maintainer's Kobra 4
   shows what they hold.
+- **The printer says what is plugged in.** FarolPrint asks for `peripherie` once per connection and follows the
+  reports the printer pushes when something is plugged in or out (camera, USB drive, ACE). When the printer reports no
+  camera, the camera card says so instead of trying to start a stream that cannot come.
+- **The name on the printer is changed on request** (the official client renames the printer too). The printer
+  settings show the name the printer reports for itself and, when the FarolPrint name differs, a "Use this name on
+  the printer" button that sends it with `info/setPrinterName` (1–30 characters, the limit of the official dialog).
+  Renaming the printer in FarolPrint alone does not touch the printer.
 - **No speed mode 4.** The Moonraker speed factor mapped a mode 4 to 1.5, which no source documents; an unknown mode
   now reports 1.0, like a missing one.
 - **Common printer errors are explained in the interface language** (maintainer's request). 43 pause and failure codes
