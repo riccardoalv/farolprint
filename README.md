@@ -182,6 +182,9 @@ bun run test
 bun run lint
 ```
 
+No printer at hand? `bun run --filter @farolprint/api fake-printer` starts a fake Kobra 4 printing on `127.0.0.1`: add
+a printer with that IP in the dashboard ([fake printer](docs/development.md#fake-printer)).
+
 API environment variables (`apps/api`):
 
 | Variable                  | Default                               | Role                                          |

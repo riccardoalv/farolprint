@@ -24,6 +24,7 @@ How to work on FarolPrint: setup, commands, tests, CI, commits and releases. The
 | `bun run check-types` | TypeScript in every package (also generates routes and i18n) |
 | `bun run test` | `bun test` in every package |
 | `bun run db:migrate` | New Prisma migration (`prisma migrate dev`) |
+| `bun run --filter @farolprint/api fake-printer` | A fake Kobra 4 on `127.0.0.1` ([Fake printer](#fake-printer)) |
 
 Scripts of one workspace run with `bun run --filter <package> <script>`, for example
 `bun run --filter @farolprint/web build`.
@@ -34,7 +35,50 @@ Scripts of one workspace run with `bun run --filter <package> <script>`, for exa
 by IP. Data goes to `FAROLPRINT_DATA_DIR` (default `data/`).
 
 A printer accepts **a single MQTT session**: stop any other FarolPrint connected to it (another server or Docker
-container) before connecting a development build to the same printer.
+container) before connecting a development build to the same printer. Without a printer, use the
+[fake printer](#fake-printer).
+
+## Fake printer
+
+`bun run --filter @farolprint/api fake-printer` runs `apps/api/dev/fake-printer.ts`, a fake Kobra 4 with an ACE in the
+middle of a print. It listens on `127.0.0.1` only and never talks to a real printer: add a printer with the IP
+`127.0.0.1` in the dashboard. It is a development tool, not shipped in the Docker image (which copies `apps/api/src`
+only).
+
+What it answers, following [protocol.md](protocol.md):
+
+- **HTTP on 18910**: `/info`, `/ctrl` (checks the signature and returns the MQTT credentials encrypted like the
+  printer) and `/gcode_upload` (the file joins the printer's list).
+- **MQTT over TLS on 9883**, with the bundled Slicer certificate, read only: one session at a time, username and
+  password checked. Every request is acknowledged on `…/response` with its `msgid`, and reports carry a `msgid` of
+  their own, like the Kobra 4, so `request()` in the client resolves with the acknowledgement.
+- Every command in [What FarolPrint sends](protocol.md#what-farolprint-sends): `info`, `print/query` (answered only
+  while printing), `print/start` (preheating, then the calibrations it asks for), pause (10401), resume, stop (10601,
+  then an `updated` report with the targets at 0), `print/update` (an `updated` report), the light query (two `control`
+  messages), peripherals, the ACE, `/` and `/test_model` file lists, file details, object skip, fan, axes, camera and
+  rename. `tempature/set` and axis moves are refused during a print with 10301, as the Kobra 4 does.
+- Temperatures and progress are pushed as they change, about once a second.
+- **Camera on 18088** (`/live/<token>`): an ffmpeg test pattern. Without ffmpeg the stream answers 503 and everything
+  else keeps working.
+
+| Variable | Default | Role |
+|---|---|---|
+| `FAROLPRINT_FAKE_HTTP_PORT` | `18910` | HTTP port |
+| `FAROLPRINT_FAKE_MQTT_PORT` | `9883` | MQTT port |
+| `FAROLPRINT_FAKE_CAMERA_PORT` | `18088` | Camera port |
+| `FAROLPRINT_FAKE_ACE_UNITS` | `1` | ACE units, `0` for an external spool only, up to `4` |
+| `FAROLPRINT_FAKE_PRINT_SEC` | `5400` | Length of a print in seconds |
+| `FAROLPRINT_FFMPEG` | as for the API | ffmpeg for the camera |
+
+FarolPrint always reaches a printer on 18910 and 9883, so the dashboard can only add the fake on those two ports; other
+ports (`0` picks a free one) are for tests. The values it has to invent are plainly fake (`fake-user`,
+`fake-kobra4-device`, firmware `0.0.0-fake`, `Fake_Test_*.gcode`). Where the real printer's answer is not known, such as
+the refusal of a wrong `/ctrl` signature, a wrong upload token, a second MQTT session or a missing file, the fake picks
+one: protocol.md stays the reference, not the fake.
+
+`apps/api/test/fake-printer.test.ts` drives it with FarolPrint's own `fetchPrinterCredentials`, `KobraMqttClient`,
+`uploadGcode` and `PrinterBridge`, and fails when the client gains a command the fake does not answer: a new command
+needs its answer in the fake.
 
 ## Tests
 
