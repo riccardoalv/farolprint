@@ -314,9 +314,10 @@ Bambu tools so people migrating from them find things where they expect. The pha
   Before, any answer counted as a success and the print failed later with a confusing message.
 - **The light is asked for on connect.** FarolPrint sends `light/query` once per connection, on the `web` topic like the
   official client, so the light switch is right before anyone touches it. Only the camera light (type 3), the one the
-  dashboard switches, is read; the Kobra 4 lists more than one lamp. A query answer never counts as a tap for the bed
-  clear trigger, while every other light message still does, whatever the lamp, so the trigger keeps working as it was
-  tested. A light message without a status leaves the switch as it is instead of turning it off.
+  dashboard switches, is read; the official client also knows a head and a box light (the Kobra 4 reports only the
+  camera light). A query answer never counts as a tap for the bed clear trigger, while every other light message still
+  does, whatever the lamp, so the trigger keeps working as it was tested. A light message without a status leaves the
+  switch as it is instead of turning it off.
 - **The fan follows `fan/report`.** The printer pushes the part fan speed as soon as it changes; FarolPrint used to wait
   for the next `info` report. A report without a speed changes nothing.
 - **Printer capabilities are logged before they are used.** `info.features` says what the printer supports (flow
