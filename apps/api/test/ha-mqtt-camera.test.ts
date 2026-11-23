@@ -214,3 +214,69 @@ describe('HaMqttService camera', () => {
         expect(payload.state_topic).toBeUndefined();
     });
 });
+
+function pngB64(side: number): string {
+    const buf = Buffer.alloc(33);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(buf, 0);
+    buf.writeUInt32BE(13, 8);
+    buf.write('IHDR', 12, 'ascii');
+    buf.writeUInt32BE(side, 16);
+    buf.writeUInt32BE(side, 20);
+    return buf.toString('base64');
+}
+
+function withThumbnail(bridge: ReturnType<typeof fakeBridge>, thumbnail: string) {
+    const snap = bridge.snapshot.bind(bridge);
+    (bridge as unknown as { snapshot: () => unknown }).snapshot = () => ({ ...snap(), thumbnail });
+    return bridge;
+}
+
+const thumbnails = () => client.published.filter((p) => p.topic === 'farolprint/p1/thumbnail');
+const publishState = (svc: InstanceType<typeof HaMqttService>, bridge: PrinterBridge, thumbnail: string) =>
+    (svc as unknown as { publishState: (b: PrinterBridge, s: unknown) => void }).publishState(bridge, {
+        ...bridge.snapshot(),
+        thumbnail,
+    });
+
+describe('HaMqttService print thumbnail', () => {
+    it('announces an image entity with base64 PNG payloads and no state topic', async () => {
+        await connectedService(fakeBridge());
+        const cfg = client.published.find((p) => p.topic === 'homeassistant/image/farolprint_p1/thumbnail/config');
+        expect(cfg?.retain).toBe(true);
+        const payload = JSON.parse(cfg?.payload ?? '{}');
+        expect(payload).toMatchObject({
+            image_topic: 'farolprint/p1/thumbnail',
+            image_encoding: 'b64',
+            content_type: 'image/png',
+        });
+        expect(payload.state_topic).toBeUndefined();
+    });
+
+    it('publishes the thumbnail retained, once per change', async () => {
+        const first = pngB64(8);
+        const bridge = withThumbnail(fakeBridge('printing'), first);
+        const svc = await connectedService(bridge);
+        publishState(svc, bridge, first);
+        expect(thumbnails()).toEqual([{ topic: 'farolprint/p1/thumbnail', payload: first, retain: true }]);
+        const next = pngB64(16);
+        publishState(svc, bridge, next);
+        expect(thumbnails().map((p) => p.payload)).toEqual([first, next]);
+    });
+
+    it('keeps the last thumbnail when the print ends and ignores data that is not a PNG', async () => {
+        const first = pngB64(8);
+        const bridge = withThumbnail(fakeBridge('printing'), first);
+        const svc = await connectedService(bridge);
+        publishState(svc, bridge, '');
+        publishState(svc, bridge, Buffer.from('jpeg').toString('base64'));
+        expect(thumbnails().map((p) => p.payload)).toEqual([first]);
+    });
+
+    it('publishes it again after a reconnection to the broker', async () => {
+        const first = pngB64(8);
+        const bridge = withThumbnail(fakeBridge('printing'), first);
+        await connectedService(bridge);
+        client.goOnline();
+        expect(thumbnails().map((p) => p.payload)).toEqual([first, first]);
+    });
+});

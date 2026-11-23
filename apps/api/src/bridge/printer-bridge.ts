@@ -52,6 +52,7 @@ import { Logger } from '@nestjs/common';
 import type { GcodeService, StoredFile } from '../gcode/gcode.service';
 import { connectionErrorMessage, m, printerRefusedMessage, protocolErrorMessage } from '../i18n/locale';
 import { bindPrinterContext } from '../logs/log-buffer';
+import { moonrakerThumbnails, pngFromBase64 } from '../moonraker/thumbnails';
 import {
     aggregateAceUnits,
     aggregateSlots,
@@ -1385,8 +1386,21 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
             first_layer_height: firstH || null,
             layer_count: totalLayers || null,
             object_height: objectHeight || null,
-            thumbnails: [],
+            thumbnails: moonrakerThumbnails(
+                filename,
+                (tracked && this.s.thumbnail) || gf?.thumbnail || this.printerThumbs.get(filename),
+            ),
         };
+    }
+
+    async fileThumbnail(filename: string): Promise<Buffer | null> {
+        if (!filename) return null;
+        if (filename === this.s.filename && this.s.thumbnail) {
+            const live = pngFromBase64(this.s.thumbnail);
+            if (live) return live;
+        }
+        const stored = await this.gcode.getByFilename(filename);
+        return pngFromBase64(stored?.thumbnail) ?? pngFromBase64(this.printerThumbs.get(filename));
     }
 
     get lastUploadedFilename(): string {

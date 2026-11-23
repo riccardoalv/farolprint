@@ -25,6 +25,7 @@ import { m } from '../i18n/locale';
 import { MoonrakerGateway } from './moonraker.gateway';
 import { MoonrakerService } from './moonraker.service';
 import { MoonrakerAuthService } from './moonraker-auth.service';
+import { thumbnailFilename } from './thumbnails';
 
 type MulterFile = { originalname: string; buffer: Buffer; size: number };
 
@@ -89,6 +90,14 @@ export class MoonrakerController {
     async filesMetadata(@Query('filename') filename?: string) {
         const name = filename || this.moon.bridge.snapshot().filename;
         return { result: name ? await this.moon.fileMetadata(name) : {} };
+    }
+
+    @Get('server/files/gcodes/.thumbs/:name')
+    async thumbnail(@Param('name') name: string, @Res() res: Response) {
+        const filename = thumbnailFilename(name);
+        const png = filename ? await this.moon.bridge.fileThumbnail(filename) : null;
+        if (!png) throw new NotFoundException();
+        res.type('png').send(png);
     }
 
     @Get('access/api_key')
