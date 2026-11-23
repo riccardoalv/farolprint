@@ -3,7 +3,6 @@ import {
     type FilamentAssignment,
     type GcodeFilament,
     type GcodeFileDto,
-    materialFamily,
     type QueueTarget,
     type SlotFilamentInfo,
     slotUsableForPrint,
@@ -42,6 +41,7 @@ import { useCostEstimate } from '@/hooks/use-cost-estimate';
 import { useLiveState, usePrinter } from '@/hooks/use-printers';
 import { useSpoolLookup } from '@/hooks/use-slot-spool';
 import { hexToRgb, rgbCss, rgbToHex, textOn } from '@/lib/color';
+import { type Channel, compatibleSlots, defaultAssignments, filamentPalette } from '@/lib/filament-assignments';
 import { anyShort, checkFilament, type FilamentStatus, type SlotCheck } from '@/lib/filament-check';
 import { parseFilename } from '@/lib/filename';
 import { formatDuration } from '@/lib/format';
@@ -65,45 +65,6 @@ export interface PrintReadyResult {
     flowCalibration: boolean;
     timelapse: boolean;
     failureDetection: boolean;
-}
-
-interface Channel {
-    paintIndex: number;
-    colorHex: string;
-    material: string;
-    isUsed: boolean;
-}
-
-function colorDistance(a: string, b: string): number {
-    const [r1, g1, b1] = hexToRgb(a);
-    const [r2, g2, b2] = hexToRgb(b);
-    return (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2;
-}
-
-function compatibleSlots(channel: Channel, slots: AmsSlot[]): AmsSlot[] {
-    const fam = materialFamily(channel.material);
-    if (!fam) return slots;
-    return slots.filter((s) => materialFamily(s.type) === fam);
-}
-
-function defaultAssignments(channels: Channel[], slots: AmsSlot[]): Record<number, number> {
-    const out: Record<number, number> = {};
-    const taken = new Set<number>();
-    for (const ch of channels) {
-        const ranked = compatibleSlots(ch, slots).sort((a, b) => {
-            const da = Math.abs(a.globalIndex - ch.paintIndex);
-            const db = Math.abs(b.globalIndex - ch.paintIndex);
-            if (da !== db) return da - db;
-            const ca = colorDistance(ch.colorHex, rgbToHex(a.color));
-            const cb = colorDistance(ch.colorHex, rgbToHex(b.color));
-            if (ca !== cb) return ca - cb;
-            return a.globalIndex - b.globalIndex;
-        });
-        const chosen = ranked.find((s) => !taken.has(s.globalIndex)) ?? ranked[0];
-        out[ch.paintIndex] = chosen ? chosen.globalIndex : -1;
-        if (chosen) taken.add(chosen.globalIndex);
-    }
-    return out;
 }
 
 function slotLabel(slot: AmsSlot, info: SlotFilamentInfo | undefined): string {
@@ -225,7 +186,7 @@ export function PrintReadyForm({
     );
     const remaining = names.length - excluded.length;
     const { name, plate } = parseFilename(file.filename);
-    const tint = channels.find((ch) => ch.isUsed)?.colorHex ?? channels[0]?.colorHex;
+    const palette = useMemo(() => filamentPalette(channels, usable, assignments), [channels, usable, assignments]);
 
     const build = (): PrintReadyResult => ({
         filamentAssignments: usable.length
@@ -265,7 +226,7 @@ export function PrintReadyForm({
     return (
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 py-2 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
             <div className="grid content-start gap-3">
-                <PrintPreview3D printerId={printerId} file={file} tint={tint} className="h-72 md:h-[26rem]" />
+                <PrintPreview3D printerId={printerId} file={file} filament={palette} className="h-72 md:h-[26rem]" />
                 <div className="min-w-0 space-y-1.5 px-1">
                     <div className="flex items-center gap-2">
                         <span className="truncate font-medium" title={file.filename}>

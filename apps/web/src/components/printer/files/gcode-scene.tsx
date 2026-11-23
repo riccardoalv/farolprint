@@ -4,12 +4,15 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { BoxGeometry, BufferAttribute, BufferGeometry, Color, InstancedMesh, MOUSE, Object3D, TOUCH } from 'three';
 import { type ThemeColors, useThemeColors } from '@/hooks/use-theme-colors';
-import type { ParsedGcode } from '@/lib/gcode-parser.worker';
+import type { FilamentColors } from '@/lib/filament-assignments';
+import { type ParsedGcode, SEGMENT_STRIDE as STRIDE } from '@/lib/gcode-parse';
 import { fitCamera } from '@/lib/scene-fit';
 
 export type SceneMode = 'lines' | 'solid';
 
 const MIN_TINT_LIGHTNESS = 0.24;
+const TOP_LAYER_LIFT = 0.08;
+const FILAMENT_AREA = Math.PI * 0.875 ** 2;
 
 function visibleTint(tint: string | undefined): string | undefined {
     if (!tint) return undefined;
@@ -20,18 +23,38 @@ function visibleTint(tint: string | undefined): string | undefined {
     return `#${color.getHexString()}`;
 }
 
-const STRIDE = 5;
-const FILAMENT_AREA = Math.PI * 0.875 ** 2;
+export type Painter = { tinted: boolean; color: (tool: number, top: boolean) => Color };
 
-function buildLines(data: ParsedGcode) {
+export function makePainter(filament: FilamentColors | undefined, colors: ThemeColors): Painter {
+    const main = visibleTint(filament?.main || undefined);
+    const byTool = (filament?.byTool ?? []).map((c) => visibleTint(c || undefined) ?? main);
+    const tinted = Boolean(main || byTool.some(Boolean));
+    const cache = new Map<string, Color>();
+    const color = (tool: number, top: boolean) => {
+        const own = (tool >= 0 ? byTool[tool] : undefined) ?? main;
+        const key = `${own ?? ''}|${top}`;
+        let c = cache.get(key);
+        if (!c) {
+            if (own) c = top ? new Color(own).offsetHSL(0, 0, TOP_LAYER_LIFT) : new Color(own);
+            else c = new Color(top ? colors.primary : colors.muted);
+            cache.set(key, c);
+        }
+        return c;
+    };
+    return { tinted, color };
+}
+
+export function buildLines(data: ParsedGcode) {
     const { layers, minX, maxX, minY, maxY } = data;
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
     let points = 0;
     for (const l of layers) points += (l.segs.length / STRIDE) * 2;
     const positions = new Float32Array(points * 3);
+    const tools = new Int8Array(points / 2);
     const ends: number[] = [];
     let o = 0;
+    let t = 0;
     for (const l of layers) {
         const s = l.segs;
         for (let k = 0; k < s.length; k += STRIDE) {
@@ -41,18 +64,38 @@ function buildLines(data: ParsedGcode) {
             positions[o++] = s[k + 2] - cx;
             positions[o++] = l.z;
             positions[o++] = -(s[k + 3] - cy);
+            tools[t++] = s[k + 5];
         }
         ends.push(o / 3);
     }
     const attribute = new BufferAttribute(positions, 3);
+    const colorAttribute = new BufferAttribute(new Float32Array(points * 3), 3);
     const base = new BufferGeometry();
     base.setAttribute('position', attribute);
+    base.setAttribute('color', colorAttribute);
     const top = new BufferGeometry();
     top.setAttribute('position', attribute);
-    return { base, top, ends };
+    top.setAttribute('color', colorAttribute);
+    return { base, top, ends, tools, colorAttribute };
 }
 
-function buildSolid(data: ParsedGcode) {
+export function paintLines(built: ReturnType<typeof buildLines>, painter: Painter): void {
+    const { tools, colorAttribute } = built;
+    const out = colorAttribute.array as Float32Array;
+    for (let i = 0; i < tools.length; i++) {
+        const c = painter.color(tools[i], false);
+        const j = i * 6;
+        out[j] = c.r;
+        out[j + 1] = c.g;
+        out[j + 2] = c.b;
+        out[j + 3] = c.r;
+        out[j + 4] = c.g;
+        out[j + 5] = c.b;
+    }
+    colorAttribute.needsUpdate = true;
+}
+
+export function buildSolid(data: ParsedGcode) {
     const { layers, minX, maxX, minY, maxY } = data;
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
@@ -61,6 +104,7 @@ function buildSolid(data: ParsedGcode) {
     const geometry = new BoxGeometry(1, 1, 1);
     const mesh = new InstancedMesh(geometry, undefined, count);
     const dummy = new Object3D();
+    const tools = new Int8Array(count);
     const ends: number[] = [];
     let i = 0;
     let prevZ = 0;
@@ -81,26 +125,28 @@ function buildSolid(data: ParsedGcode) {
             dummy.rotation.set(0, Math.atan2(dy, dx), 0);
             dummy.scale.set(len + w, h, w);
             dummy.updateMatrix();
+            tools[i] = s[k + 5];
             mesh.setMatrixAt(i++, dummy.matrix);
         }
         ends.push(i);
     }
     mesh.instanceMatrix.needsUpdate = true;
-    return { mesh, geometry, ends };
+    return { mesh, geometry, ends, tools };
 }
 
 function Lines({
     data,
     shown,
     colors,
-    tint,
+    filament,
 }: {
     data: ParsedGcode;
     shown: number;
     colors: ThemeColors;
-    tint?: string;
+    filament?: FilamentColors;
 }) {
     const built = useMemo(() => buildLines(data), [data]);
+    const painter = useMemo(() => makePainter(filament, colors), [filament, colors]);
     useEffect(() => {
         const { base, top } = built;
         return () => {
@@ -108,6 +154,9 @@ function Lines({
             top.dispose();
         };
     }, [built]);
+    useLayoutEffect(() => {
+        if (painter.tinted) paintLines(built, painter);
+    }, [built, painter]);
     useLayoutEffect(() => {
         const { base, top, ends } = built;
         if (!ends.length) return;
@@ -118,13 +167,24 @@ function Lines({
         top.setDrawRange(start, end - start);
     }, [built, shown]);
 
+    const tinted = painter.tinted;
     return (
         <group>
             <lineSegments geometry={built.base}>
-                <lineBasicMaterial color={tint ?? colors.muted} transparent opacity={tint ? 0.85 : 0.35} />
+                <lineBasicMaterial
+                    key={`base-${tinted}`}
+                    vertexColors={tinted}
+                    color={tinted ? '#ffffff' : colors.muted}
+                    transparent
+                    opacity={tinted ? 0.85 : 0.35}
+                />
             </lineSegments>
             <lineSegments geometry={built.top}>
-                <lineBasicMaterial color={tint ?? colors.primary} />
+                <lineBasicMaterial
+                    key={`top-${tinted}`}
+                    vertexColors={tinted}
+                    color={tinted ? '#ffffff' : colors.primary}
+                />
             </lineSegments>
         </group>
     );
@@ -134,16 +194,17 @@ function Solid({
     data,
     shown,
     colors,
-    tint,
+    filament,
 }: {
     data: ParsedGcode;
     shown: number;
     colors: ThemeColors;
-    tint?: string;
+    filament?: FilamentColors;
 }) {
     const built = useMemo(() => buildSolid(data), [data]);
+    const painter = useMemo(() => makePainter(filament, colors), [filament, colors]);
     const painted = useRef(-1);
-    const palette = useRef('');
+    const paintedWith = useRef<Painter | null>(null);
     useEffect(() => {
         const { mesh, geometry } = built;
         painted.current = -1;
@@ -153,25 +214,22 @@ function Solid({
         };
     }, [built]);
     useLayoutEffect(() => {
-        const { mesh, ends } = built;
+        const { mesh, ends, tools } = built;
         if (!ends.length) return;
         const index = Math.min(Math.max(shown, 1), ends.length) - 1;
-        const base = new Color(tint ?? colors.muted);
-        const top = tint ? new Color(tint).offsetHSL(0, 0, 0.08) : new Color(colors.primary);
-        const key = `${tint}|${colors.muted}|${colors.primary}`;
-        if (palette.current !== key) {
-            palette.current = key;
+        if (paintedWith.current !== painter) {
+            paintedWith.current = painter;
             painted.current = -1;
         }
         const prev = painted.current;
         const from = prev < 0 ? 0 : Math.min(prev, index) > 0 ? ends[Math.min(prev, index) - 1] : 0;
         const to = ends[Math.max(prev < 0 ? index : prev, index)];
         const topStart = index > 0 ? ends[index - 1] : 0;
-        for (let i = from; i < to; i++) mesh.setColorAt(i, i >= topStart ? top : base);
+        for (let i = from; i < to; i++) mesh.setColorAt(i, painter.color(tools[i], i >= topStart));
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
         mesh.count = ends[index];
         painted.current = index;
-    }, [built, shown, colors, tint]);
+    }, [built, shown, painter]);
 
     return (
         <primitive object={built.mesh}>
@@ -225,17 +283,16 @@ export function GcodeScene({
     mode,
     pan,
     resetSignal,
-    tint,
+    filament,
 }: {
     data: ParsedGcode;
     shown: number;
     mode: SceneMode;
     pan: boolean;
     resetSignal: number;
-    tint?: string;
+    filament?: FilamentColors;
 }) {
     const colors = useThemeColors();
-    const shownTint = visibleTint(tint);
     const span = Math.max(1, data.maxX - data.minX, data.maxY - data.minY);
     const height = data.layers.length ? data.layers[data.layers.length - 1].z : 1;
     const bed = Math.max(Math.ceil((span * 1.6) / 10) * 10, 40);
@@ -270,9 +327,9 @@ export function GcodeScene({
                 fadeStrength={1}
             />
             {mode === 'solid' ? (
-                <Solid data={data} shown={shown} colors={colors} tint={shownTint} />
+                <Solid data={data} shown={shown} colors={colors} filament={filament} />
             ) : (
-                <Lines data={data} shown={shown} colors={colors} tint={shownTint} />
+                <Lines data={data} shown={shown} colors={colors} filament={filament} />
             )}
             <OrbitControls
                 makeDefault

@@ -132,6 +132,14 @@ later and build on these.
   default price per kg; energy is the slicer's estimated time × the printer power draw (its profile, else the default)
   × the price per kWh. It is computed in the browser (`estimateCost` in `packages/shared/src/cost.ts`) and is not
   stored; the history keeps showing only the actual cost.
+- **The G-code preview shows each part in the filament that will print it** (maintainer's decision, November 2026,
+  brought over from Kobralink 1.0 and adapted). The parser tags every extrusion with the tool of the last `T<n>`;
+  each tool takes the color of the slot assigned to it (in the print dialog, the slot chosen for each filament; in the
+  file preview, the default assignment), else the slicer's color, and moves before any tool change take the first
+  filament the print uses. Unlike upstream, the shown layer stays highlighted (a lighter shade of its filament), the
+  lines view is colored too, and solid is not forced as the default view of the file preview. While following a
+  print, moving the layer slider stops following instead of being disabled, and turning following off stays on the
+  layer shown.
 - **Dates and times are picked with a calendar and a clock dial.** Scheduling a print or an ACE drying opens a
   popover with the shadcn `Calendar` (`react-day-picker`, the only date dependency besides dayjs), then an
   Android-style dial for the hour (outer ring 1 to 12, inner ring 00 and 13 to 23) and the minute, applied with OK.

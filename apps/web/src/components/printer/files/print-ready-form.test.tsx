@@ -19,10 +19,16 @@ vi.mock('@/hooks/use-slot-spool', () => ({
     useSpoolLookup: () => (slot: string) => ({ remainingG: mocks.remaining[slot] }),
 }));
 
-vi.mock('./print-preview-3d', () => ({ PrintPreview3D: () => <div data-testid="preview-3d" /> }));
+vi.mock('./print-preview-3d', () => ({
+    PrintPreview3D: ({ filament }: { filament?: unknown }) => {
+        mocks.preview = filament;
+        return <div data-testid="preview-3d" />;
+    },
+}));
 
 const mocks = vi.hoisted(() => ({
     remaining: {} as Record<string, number | undefined>,
+    preview: undefined as unknown,
     settings: null as unknown,
     spoolman: { configured: false, slotSpools: {} } as unknown,
     spools: [] as unknown[],
@@ -263,5 +269,29 @@ describe('PrintReadyForm cost estimate', () => {
         await renderWithProviders(<PrintReadyForm printerId="p1" file={priced} onPrint={vi.fn()} />);
         await screen.findByText('Anti-Wobble V2');
         expect(screen.queryByRole('region', { name: m.cost_estimate() })).toBeNull();
+    });
+});
+
+describe('PrintReadyForm preview colors', () => {
+    it('colors the preview with the slicer filament when no ACE slot is used', async () => {
+        await renderWithProviders(<PrintReadyForm printerId="p1" file={file} onPrint={vi.fn()} />);
+        expect(mocks.preview).toEqual({ byTool: ['#111111'], main: '#111111' });
+    });
+
+    it('colors the preview with the ACE slot assigned to each filament', async () => {
+        const live = mocks.live;
+        mocks.live = {
+            ...live,
+            filamentMode: 'ace_hub',
+            amsSlots: [
+                { globalIndex: 0, boxId: 0, index: 0, status: 5, type: 'PETG', color: [255, 0, 0], activity: '' },
+            ],
+        } as typeof live;
+        try {
+            await renderWithProviders(<PrintReadyForm printerId="p1" file={file} onPrint={vi.fn()} />);
+            await waitFor(() => expect(mocks.preview).toEqual({ byTool: ['#ff0000'], main: '#ff0000' }));
+        } finally {
+            mocks.live = live;
+        }
     });
 });
