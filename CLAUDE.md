@@ -144,7 +144,8 @@ printer's LAN protocol (what FarolPrint uses, what Anycubic's own client does di
 `bun run dev` · `bun run dev:web` (API + web, TUI) · `bun run build` · `bun run check-types`
 · `bun run test` · `bun run lint` (biome check) · `bun run format` · `bun run db:migrate` (prisma migrate dev)
 · `bun run db:generate` · `bun run db:studio` · `bun run version:set <x.y.z|major|minor|patch>` (bumps every
-package.json; releases do it through release-please).
+package.json; releases do it through release-please) · `bun run --filter @farolprint/api fake-printer` (fake Kobra 4 on
+`127.0.0.1` for work without a printer, [development.md](docs/development.md#fake-printer)).
 
 Tests use `bun test`: `packages/shared/test`, `packages/kobra-protocol/test`, `packages/i18n/test` (locale parity) and
 `apps/api/test` (`test/helpers/db.ts` gives a real SQLite database with the migrations applied; `bunfig.toml` preloads a

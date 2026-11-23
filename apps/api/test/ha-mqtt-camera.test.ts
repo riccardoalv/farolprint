@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock, setSystemTime } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, it, mock, setSystemTime } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { type AppSettings, appSettingsSchema } from '@farolprint/shared';
 import type { PrinterBridge } from '../src/bridge/printer-bridge';
@@ -31,6 +31,10 @@ class FakeClient extends EventEmitter {
 }
 
 let client: FakeClient;
+const realMqtt = { ...(await import('mqtt')) };
+afterAll(() => {
+    mock.module('mqtt', () => realMqtt);
+});
 mock.module('mqtt', () => ({
     default: {
         connect: () => {
