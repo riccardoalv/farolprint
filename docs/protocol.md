@@ -249,9 +249,10 @@ Status of every gap found by the survey; the ones already fixed are marked **fix
 | 36 | The official client connects with the per-printer `devicecrt`/`devicepk` from `/ctrl`, not the bundled Slicer certificate | checked: the Kobra 4 accepts it, the Slicer one and none; the broker checks the password |
 | 37 | The official client publishes everything on the `web` topic; FarolPrint mostly uses `slicer` | not planned: it works |
 | 38 | The official client restarts the camera with stop, ~1 s, start | checked: not needed on the Kobra 4, whose LAN stream does not depend on start and stop |
-| 39 | `print/query` answer timing unclear | checked: idle, no answer on the Kobra 4; while printing, a print report within 13 ms (two prints) |
+| 39 | `print/query` answer timing unclear | idle: only the acknowledgement on the Kobra 4; while printing: still open, the 13 ms FarolPrint logged was the acknowledgement (45) ❓ |
 | 40 | Nozzle and bed temperatures sent as two `print/update` | not planned: cosmetic |
 | 41 | Speed mode 4 (`speed_factor` 1.5) in the Moonraker mapping has no source | fixed: removed; any mode other than 1–3 reports 1.0 |
 | 42 | `print_time` in seconds on the S1 Max (not a supported model); Kobra X `ams_index` with an ACE unverified | to test: needs a Kobra X with an ACE ❓ |
 | 43 | `/ctrl` 19002 shown as an invalid answer; any request to 18088 lights the Kobra X camera light, which "camera always on" keeps lit | 19002 fixed: explained as the connection limit; the Kobra X light: roadmap (the Kobra 4 light stays off) |
 | 44 | The file list holds at most 256 files (Kobra 4), newest first, with no paging | shown: the list says when it reached 256 |
+| 45 | `request()` resolves with the `/response` acknowledgement, which echoes the request's `msgid` and comes first, instead of the report (which carries its own `msgid`): a `print/start` refusal is only seen later as a `refused` event, the ACE query hands an empty answer to the ACE handler on every poll, and the camera start logs `state=` empty | to fix: found with the fake printer; needs a check on the Kobra 4 first (does a printer without an ACE send a `multiColorBox` report, or only the acknowledgement?) ❓ |

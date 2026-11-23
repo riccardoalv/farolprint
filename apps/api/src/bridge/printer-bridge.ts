@@ -622,6 +622,21 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
         }
     }
 
+    private trackPauseReason(kobraState: string, p: KobraMessage<KobraPrintData>): void {
+        if (kobraState === 'pause' || kobraState === 'paused') {
+            if (!p.msg) return;
+            const changed = this.s.pauseMsg !== p.msg;
+            this.s.errorCode = Number(p.code ?? 0);
+            this.s.pauseMsg = p.msg;
+            if (!changed) return;
+            this.log.warn(`Printer paused: [${this.s.errorCode}] ${p.msg}`);
+            this.emitEvent('print_paused', { code: this.s.errorCode, msg: p.msg, filename: this.s.filename });
+        } else if (['resuming', 'resumed', 'printing'].includes(kobraState)) {
+            this.s.errorCode = 0;
+            this.s.pauseMsg = '';
+        }
+    }
+
     private trackPause(kobraState: string): void {
         if (!this.currentJobId) return;
         if (PAUSE_KOBRA_STATES.has(kobraState)) {
@@ -650,19 +665,7 @@ export class PrinterBridge extends EventEmitter<BridgeEvents> {
         }
         if (kobraState && !acknowledgement) this.applyKobraState(kobraState, 'printing');
 
-        if (kobraState === 'pause' || kobraState === 'paused') {
-            if (p.msg) {
-                const changed = this.s.pauseMsg !== p.msg;
-                this.s.errorCode = Number(p.code ?? 0);
-                this.s.pauseMsg = p.msg;
-                this.log.warn(`Printer paused: [${this.s.errorCode}] ${p.msg}`);
-                if (changed)
-                    this.emitEvent('print_paused', { code: this.s.errorCode, msg: p.msg, filename: this.s.filename });
-            }
-        } else if (['resuming', 'resumed', 'printing'].includes(kobraState)) {
-            this.s.errorCode = 0;
-            this.s.pauseMsg = '';
-        }
+        if (!acknowledgement) this.trackPauseReason(kobraState, p);
 
         if (d.print_time !== undefined) this.setPrintTime(Number(d.print_time) * 60);
         this.syncJob(kobraState, d.filename ?? this.s.filename);

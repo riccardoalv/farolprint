@@ -27,17 +27,23 @@ function harness() {
     const internals = bridge as unknown as {
         s: { connected: boolean };
         onReport: (suffix: string, payload: Record<string, unknown>) => void;
-        log: { log: (m: string) => void };
+        log: { log: (m: string) => void; warn: (m: string) => void };
     };
     internals.s.connected = true;
     internals.log.log = () => undefined;
+    const warnings: string[] = [];
+    internals.log.warn = (m: string) => {
+        warnings.push(m);
+    };
     const jobs: unknown[][] = [];
     bridge.on('job', (...args: unknown[]) => jobs.push(args));
-    const report = async (state: string, data: Record<string, unknown>) => {
-        internals.onReport('print/report', { action: 'update', state, data });
+    const events: { type: string; data: unknown }[] = [];
+    bridge.on('event', (e: { type: string; data: unknown }) => events.push(e));
+    const report = async (state: string, data: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+        internals.onReport('print/report', { action: 'update', state, data, ...extra });
         await new Promise((r) => setTimeout(r, 0));
     };
-    return { bridge, report, jobs };
+    return { bridge, report, jobs, warnings, events };
 }
 
 const settings = (fan: number, nozzle = 230, bed = 70) => ({
@@ -124,5 +130,44 @@ describe('updated print reports', () => {
         await h.report('updated', updated(40));
         await h.report('updated', { ...updated(0), settings: { ...settings(0), fan_speed_pct: 'fast' } });
         expect(h.bridge.snapshot().fanSpeed).toBe(40);
+    });
+});
+
+describe('pause reasons', () => {
+    const jam = { code: 11842, msg: 'Filament entanglement or jam detected' };
+    const paused = async (h: ReturnType<typeof harness>) => {
+        await h.report('printing', { filename: 'part.gcode', print_time: 10, curr_layer: 79 });
+        await h.report('paused', { filename: 'part.gcode' }, jam);
+    };
+
+    it('keep the reason when an updated report acknowledges a change during the pause', async () => {
+        const h = harness();
+        await paused(h);
+        await h.report('updated', updated(0, 205), { code: 200, msg: 'done' });
+        const s = h.bridge.snapshot();
+        expect(s.pauseMsg).toBe(jam.msg);
+        expect(s.errorCode).toBe(jam.code);
+        expect(h.events.filter((e) => e.type === 'print_paused')).toHaveLength(1);
+    });
+
+    it('are logged and notified once, not at every report while paused', async () => {
+        const h = harness();
+        await paused(h);
+        await h.report('paused', { filename: 'part.gcode' }, jam);
+        await h.report('paused', { filename: 'part.gcode' }, jam);
+        expect(h.warnings.filter((w) => w.startsWith('Printer paused'))).toEqual([
+            `Printer paused: [${jam.code}] ${jam.msg}`,
+        ]);
+        expect(h.events.filter((e) => e.type === 'print_paused')).toHaveLength(1);
+    });
+
+    it('are logged and notified again when the reason changes, and cleared on resume', async () => {
+        const h = harness();
+        await paused(h);
+        await h.report('paused', { filename: 'part.gcode' }, { code: 10401, msg: 'paused by the user' });
+        expect(h.events.filter((e) => e.type === 'print_paused')).toHaveLength(2);
+        await h.report('resuming', { filename: 'part.gcode' });
+        expect(h.bridge.snapshot().pauseMsg).toBe('');
+        expect(h.bridge.snapshot().errorCode).toBe(0);
     });
 });
