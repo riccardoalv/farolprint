@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.2](https://github.com/riccardoalv/farolprint/compare/v0.26.1...v0.26.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* **bridge:** stop taking updated print reports as a running print ([#78](https://github.com/riccardoalv/farolprint/issues/78)) ([6e1b9b7](https://github.com/riccardoalv/farolprint/commit/6e1b9b7eb2c37cb0eac029e219880efa7342b16c))
+
 ## [0.26.1](https://github.com/riccardoalv/farolprint/compare/v0.26.0...v0.26.1) (2026-11-23)
 
 
